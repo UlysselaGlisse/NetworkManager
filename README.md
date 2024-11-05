@@ -39,4 +39,4 @@ Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Installer l'ex
 
 ## Utilisation
 
-Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions. Les couches peuvent être de n'importe quel format - pourvu que Qgis les accepte ! Elles peuvent avoir le nom que vous souhaitez, la seule chose nécessaire est qu'il existe dans la couche des compositions un champ nommé "segments" et que la couche des segments est un champ nommé "id" - celui avec lequel vous construisez vos compositions.
+Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions. Les couches peuvent être de n'importe quel format - pourvu que Qgis les accepte ! Elles peuvent avoir le nom que vous souhaitez, la seule chose nécessaire est qu'il existe dans la couche des compositions un champ nommé "segments" et que la couche des segments ait un champ nommé "id" - celui avec lequel vous construisez vos compositions.
