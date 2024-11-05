@@ -2,6 +2,12 @@ Ce plugin Qgis a pour objectif d'offir une assistance lors de la réalisation d'
 
 Il permet de mettre à jour automatiquement les compositions lorsque des segments sont divisés ou fusionnés. 
 
+
+
+https://github.com/user-attachments/assets/0a4fa5cf-6b35-414f-ae94-fbf26d39a2a3
+
+
+
 # Installation 
 
 Télécharger ce répertoire : 
