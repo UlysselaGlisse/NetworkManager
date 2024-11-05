@@ -31,13 +31,13 @@ segments_layer = None
 compositions_layer = None
 last_fid = 0
 
-@timer_decorator
+#@timer_decorator
 def feature_added(fid):
 
     # Empêche Qgis de planter. Sûrement une histoire de priorité de tâche. J'ai trouvé ça pour y parer.'
     QTimer.singleShot(1, lambda: process_new_feature(fid))
 
-@timer_decorator
+#@timer_decorator
 def process_new_feature(fid):
     """
     Traite une nouvelle feature ajoutée
@@ -47,26 +47,26 @@ def process_new_feature(fid):
     if last_fid == fid:
         return
 
-    print(f"\n{'='*50}")
-    print(f"Traitement nouvelle entité FID={fid}")
-    print(f"{'='*50}")
+    #print(f"\n{'='*50}")
+    #print(f"Traitement nouvelle entité FID={fid}")
+    #print(f"{'='*50}")
 
     source_feature = segments_layer.getFeature(fid)
     if not source_feature.fields().names():
-        print("ERREUR: Pas de champs dans la feature source")
+        #print("ERREUR: Pas de champs dans la feature source")
         return
 
     id_idx = source_feature.fields().indexOf('id')
     segment_id = source_feature.attributes()[id_idx]
 
-    print(f"ID du segment: {segment_id}")
+    #print(f"ID du segment: {segment_id}")
 
     if segment_id and has_duplicate_segment_id(segment_id):
-        print(f"Segment {segment_id} détecté comme dupliqué")
+        #print(f"Segment {segment_id} détecté comme dupliqué")
 
         new_geometry = source_feature.geometry()
         if not new_geometry or new_geometry.isEmpty():
-            print("ERREUR: Géométrie invalide pour le nouveau segment")
+            #print("ERREUR: Géométrie invalide pour le nouveau segment")
             return
 
         # Récupérer le segment original
@@ -75,20 +75,20 @@ def process_new_feature(fid):
         original_feature = next(segments_layer.getFeatures(request), None)
 
         if original_feature:
-            print(f"Segment original trouvé: FID={original_feature.id()}")
+            #print(f"Segment original trouvé: FID={original_feature.id()}")
 
             # Vérifier les géométries
-            print_geometry_info(original_feature.geometry(), "Segment original")
-            print_geometry_info(new_geometry, "Nouveau segment")
+            # print_geometry_info(original_feature.geometry(), "Segment original")
+            # print_geometry_info(new_geometry, "Nouveau segment")
 
             # Récupérer toutes les compositions contenant ce segment
             segment_lists = get_compositions_list_segments(segment_id)
-            print(f"Nombre de compositions trouvées: {len(segment_lists)}")
+            #print(f"Nombre de compositions trouvées: {len(segment_lists)}")
 
             if segment_lists:
-                print(segment_lists)
+                #print(segment_lists)
                 next_id = get_next_id()
-                print(f"Nouvel ID à attribuer: {next_id}")
+                #print(f"Nouvel ID à attribuer: {next_id}")
 
                 update_segment_id(fid, next_id)
                 segment_unique = None
@@ -98,7 +98,7 @@ def process_new_feature(fid):
                         segment_unique = True
 
                 if segment_unique == True:
-                    log_debug("Composition à segment unique détectée - Traitement spécial")
+                    #log_debug("Composition à segment unique détectée - Traitement spécial")
                     new_segments = process_single_segment_composition(fid, segment_id, next_id, segments_list)
                     if new_segments is None:
                         pass
@@ -115,7 +115,7 @@ def process_new_feature(fid):
     last_fid = fid
     clean_invalid_segments()
 
-@timer_decorator
+#@timer_decorator
 def get_compositions_list_segments(segment_id):
     """
     Récupère toutes les listes de segments contenant l'id du segment divisé
@@ -125,7 +125,7 @@ def get_compositions_list_segments(segment_id):
 
     all_segments_lists = []
 
-    print(f"\nRecherche du segment {segment_id} dans les compositions")
+    #print(f"\nRecherche du segment {segment_id} dans les compositions")
 
     request = QgsFeatureRequest()
     expression = f"segments LIKE '%,{segment_id},%' OR segments LIKE '{segment_id},%' OR segments LIKE '%,{segment_id}' OR segments = '{segment_id}'"
@@ -133,23 +133,23 @@ def get_compositions_list_segments(segment_id):
 
     features = get_features_list(compositions_layer, request)
 
-    print(f"Nombre de compositions trouvées avec la requête: {len(features)}")
+    #print(f"Nombre de compositions trouvées avec la requête: {len(features)}")
 
     for feature in features:
         segments_str = feature['segments']
-        print(f"\nExamen de la composition {feature.id()}:")
-        print(f"Liste brute: {segments_str}")
+        #print(f"\nExamen de la composition {feature.id()}:")
+        #print(f"Liste brute: {segments_str}")
 
         if not segments_str:
-            print("Liste vide, ignorée")
+            #print("Liste vide, ignorée")
             continue
 
         try:
             segments_ids = [int(id.strip()) for id in str(segments_str).split(',')]
-            print(f"Liste convertie: {segments_ids}")
+            #print(f"Liste convertie: {segments_ids}")
 
             if int(segment_id) in segments_ids:
-                print(f"Segment {segment_id} trouvé dans la composition {feature.id()}")
+                #print(f"Segment {segment_id} trouvé dans la composition {feature.id()}")
                 all_segments_lists.append(segments_ids)
             else:
                 print(f"Segment {segment_id} non trouvé dans cette liste")
@@ -157,17 +157,17 @@ def get_compositions_list_segments(segment_id):
         except Exception as e:
             print(f"Erreur lors du traitement de la composition {feature.id()}: {str(e)}")
 
-    print(f"\nNombre total de listes trouvées: {len(all_segments_lists)}")
+    #print(f"\nNombre total de listes trouvées: {len(all_segments_lists)}")
     return all_segments_lists
 
-@timer_decorator
+#@timer_decorator
 def update_compositions_segments(old_id, new_id, original_feature, new_feature, segment_lists):
     """
     Met à jour les compositions après division d'un segment
     """
-    print(f"\nMise à jour des compositions:")
-    print(f"- Ancien ID: {old_id}")
-    print(f"- Nouvel ID: {new_id}")
+    #print(f"\nMise à jour des compositions:")
+    #print(f"- Ancien ID: {old_id}")
+    #print(f"- Nouvel ID: {new_id}")
 
     compositions_layer.startEditing()
 
@@ -175,10 +175,10 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
     new_geom = new_feature.geometry()
 
     for segments_list in segment_lists:
-        print(f"\nTraitement liste: {segments_list}")
+        #print(f"\nTraitement liste: {segments_list}")
         try:
             old_index = segments_list.index(int(old_id))
-            print(f"Position du segment dans la liste: {old_index}")
+            #print(f"Position du segment dans la liste: {old_index}")
 
             # Vérifier l'orientation
             prev_geom = segments_layer.getFeature(segments_list[old_index - 1]).geometry() if old_index > 0 else None
@@ -189,7 +189,7 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
                 prev_geom,
                 next_geom
             )
-            print(f"Orientation correcte: {is_correctly_oriented}")
+            #print(f"Orientation correcte: {is_correctly_oriented}")
 
             new_segments_list = segments_list.copy()
 
@@ -198,7 +198,7 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
             else:
                 new_segments_list[old_index:old_index+1] = [int(new_id), int(old_id)]
 
-            print(f"Nouvelle liste: {new_segments_list}")
+            #print(f"Nouvelle liste: {new_segments_list}")
 
             # Mettre à jour la composition
             request = QgsFeatureRequest().setFilterExpression(f"segments = '{','.join(map(str, segments_list))}'")
@@ -210,7 +210,7 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
                     compositions_layer.fields().indexOf('segments'),
                     ','.join(map(str, new_segments_list))
                 )
-                print(f"Mise à jour réussie: {result}")
+                #print(f"Mise à jour réussie: {result}")
             else:
                 print("ERREUR: Composition non trouvée")
 
@@ -220,11 +220,11 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
 def process_single_segment_composition(fid, old_id, new_id, segments_list):
     """Gère le cas d'une composition à segment unique """
 
-    log_debug(f"\nDémarrage process_single_segment_composition:")
-    log_debug(f"- FID: {fid}")
-    log_debug(f"- Ancien ID: {old_id}")
-    log_debug(f"- Nouvel ID: {new_id}")
-    log_debug(f"- Liste segments: {segments_list}")
+    #log_debug(f"\nDémarrage process_single_segment_composition:")
+    #log_debug(f"- FID: {fid}")
+    #log_debug(f"- Ancien ID: {old_id}")
+    #log_debug(f"- Nouvel ID: {new_id}")
+    #log_debug(f"- Liste segments: {segments_list}")
 
 
     class SingleSegmentDialog(QDialog):
@@ -233,7 +233,7 @@ def process_single_segment_composition(fid, old_id, new_id, segments_list):
             self.setWindowTitle("Vérification nécessaire")
             self.setMinimumWidth(400)
             self.current_segments = [old_id, new_id]
-            log_debug(f"Initialisation dialog avec segments: {self.current_segments}")
+            #log_debug(f"Initialisation dialog avec segments: {self.current_segments}")
             self.setup_ui()
 
         def setup_ui(self):
@@ -269,39 +269,39 @@ def process_single_segment_composition(fid, old_id, new_id, segments_list):
             self.setLayout(layout)
 
         def update_proposal_label(self):
-            log_debug(f"Mise à jour label avec segments: {self.current_segments}")
+            #log_debug(f"Mise à jour label avec segments: {self.current_segments}")
             self.proposal_label.setText(f"Nouvelle composition proposée: {self.current_segments}")
 
         def invert_order(self):
-            log_debug(f"Inversion de l'ordre des segments")
-            log_debug(f"Avant inversion: {self.current_segments}")
+            #log_debug(f"Inversion de l'ordre des segments")
+            #log_debug(f"Avant inversion: {self.current_segments}")
             self.current_segments.reverse()
             self.update_proposal_label()
-            log_debug(f"Après inversion: {self.current_segments}")
+            #log_debug(f"Après inversion: {self.current_segments}")
             self.update_proposal_label()
 
     dialog = SingleSegmentDialog()
     result = dialog.exec_()
 
     if result == QDialog.Accepted:
-        log_debug("Dialog accepté")
+        #log_debug("Dialog accepté")
         # Rechercher la composition qui contient ce segment
         expression = f"segments = '{old_id}'"
-        log_debug(f"Recherche composition avec expression: {expression}")
+        #log_debug(f"Recherche composition avec expression: {expression}")
         request = QgsFeatureRequest().setFilterExpression(expression)
         composition_feature = next(compositions_layer.getFeatures(request), None)
 
         if composition_feature:
-            log_debug(f"Composition trouvée: ID={composition_feature.id()}")
-            log_debug(f"Ancienne valeur segments: {composition_feature['segments']}")
+            #log_debug(f"Composition trouvée: ID={composition_feature.id()}")
+            #log_debug(f"Ancienne valeur segments: {composition_feature['segments']}")
 
             try:
                 new_segments_str = ','.join(map(str, dialog.current_segments))
-                log_debug(f"Nouvelle valeur segments à appliquer: {new_segments_str}")
+                #log_debug(f"Nouvelle valeur segments à appliquer: {new_segments_str}")
 
                 compositions_layer.startEditing()
                 segments_field_idx = compositions_layer.fields().indexOf('segments')
-                log_debug(f"Index du champ segments: {segments_field_idx}")
+                #log_debug(f"Index du champ segments: {segments_field_idx}")
 
                 success = compositions_layer.changeAttributeValue(
                     composition_feature.id(),
@@ -309,48 +309,30 @@ def process_single_segment_composition(fid, old_id, new_id, segments_list):
                     new_segments_str
                 )
 
-                log_debug(f"Résultat de la mise à jour: {'Succès' if success else 'Échec'}")
-
-                if success:
-                    # Vérifier que la mise à jour a bien été effectuée
-                    updated_feature = compositions_layer.getFeature(composition_feature.id())
-                    log_debug(f"Valeur après mise à jour: {updated_feature['segments']}")
-
-                    iface.messageBar().pushMessage(
-                        "Succès",
-                        f"Ordre des segments mis à jour: {new_segments_str}",
-                        level=Qgis.Success
-                    )
-                else:
-                    log_debug("Échec de la mise à jour")
-                    iface.messageBar().pushMessage(
-                        "Attention",
-                        "La mise à jour de la composition a échoué",
-                        level=Qgis.Warning
-                    )
+                #log_debug(f"Résultat de la mise à jour: {'Succès' if success else 'Échec'}")
 
             except Exception as e:
-                log_debug(f"ERREUR lors de la mise à jour: {str(e)}")
+                #log_debug(f"ERREUR lors de la mise à jour: {str(e)}")
                 iface.messageBar().pushMessage(
                     "Erreur",
                     f"Erreur lors de la mise à jour de la composition: {str(e)}",
-                    level=Qgis.Critical
+                    level=Qgis.MessageLevel.Critical
                 )
         else:
-            log_debug(f"Aucune composition trouvée avec le segment {old_id}")
+            #log_debug(f"Aucune composition trouvée avec le segment {old_id}")
             iface.messageBar().pushMessage(
                 "Attention",
                 f"Aucune composition trouvée avec le segment {old_id}",
-                level=Qgis.Warning
+                level=Qgis.MessageLevel.Warning
             )
 
-        log_debug(f"Retour des segments: {dialog.current_segments}")
+        #log_debug(f"Retour des segments: {dialog.current_segments}")
         return dialog.current_segments
     else:
-        log_debug("Dialog annulé")
+        #log_debug("Dialog annulé")
         return None
 
-@timer_decorator
+#@timer_decorator
 def clean_invalid_segments() -> None:
     """
     Supprime les références aux segments qui n'existent plus dans la table segments
@@ -375,7 +357,7 @@ def clean_invalid_segments() -> None:
                 new_segments_str
             )
 
-@timer_decorator
+#@timer_decorator
 def has_duplicate_segment_id(segment_id: str) -> bool:
     """
     Vérifie si un id de segments existe plusieurs fois. Si oui, il s'agit d'un segment divisé.
@@ -389,7 +371,7 @@ def has_duplicate_segment_id(segment_id: str) -> bool:
     features = get_features_list(segments_layer, request)
     return len(features) > 1
 
-@timer_decorator
+#@timer_decorator
 def update_segment_id(fid, next_id):
     """
     Met à jour l'id des segments divisés.
@@ -399,13 +381,13 @@ def update_segment_id(fid, next_id):
         segments_layer.fields().indexOf('id'),
         str(next_id))
 
-@timer_decorator
+#@timer_decorator
 def get_next_id():
 
     next_id = int(segments_layer.maximumValue(segments_layer.fields().indexOf('id')))
     return next_id + 1
 
-@timer_decorator
+#@timer_decorator
 def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment_geom=None):
     """
     Vérifie si un segment est orienté correctement par rapport aux segments adjacents.
@@ -429,7 +411,7 @@ def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment
 
     return True
 
-@timer_decorator
+#@timer_decorator
 def start_script():
     global segments_layer, compositions_layer, id_field_index, segments_field_index
 
@@ -438,28 +420,28 @@ def start_script():
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
 
-        log_debug(f"Démarrage du script avec:")
-        log_debug(f"- ID segments: {segments_layer_id}")
-        log_debug(f"- ID compositions: {compositions_layer_id}")
+        #log_debug(f"Démarrage du script avec:")
+        #log_debug(f"- ID segments: {segments_layer_id}")
+        #log_debug(f"- ID compositions: {compositions_layer_id}")
 
         project = QgsProject.instance()
         if not project:
-            log_debug("Pas de projet QGIS ouvert")
+            #log_debug("Pas de projet QGIS ouvert")
             raise Exception("Aucun projet QGIS n'est ouvert")
 
         # Correction ici : on assigne directement à segments_layer et compositions_layer
         segments_layer = project.mapLayer(segments_layer_id)
         compositions_layer = project.mapLayer(compositions_layer_id)
 
-        log_debug(f"Couches récupérées:")
-        log_debug(f"- Segments: {segments_layer.name() if segments_layer else 'None'}")
-        log_debug(f"- Compositions: {compositions_layer.name() if compositions_layer else 'None'}")
+        #log_debug(f"Couches récupérées:")
+        #log_debug(f"- Segments: {segments_layer.name() if segments_layer else 'None'}")
+        #log_debug(f"- Compositions: {compositions_layer.name() if compositions_layer else 'None'}")
 
         if not segments_layer:
-            log_debug("Couche segments non trouvée")
+            #log_debug("Couche segments non trouvée")
             raise Exception("Veuillez sélectionner une couche de segments valide")
         if not compositions_layer:
-            log_debug("Couche compositions non trouvée")
+            #log_debug("Couche compositions non trouvée")
             raise Exception("Veuillez sélectionner une couche de compositions valide")
 
         # Vérifier que ce sont des couches vectorielles
@@ -482,7 +464,7 @@ def start_script():
         return True
 
     except Exception as e:
-        log_debug(f"Erreur lors du démarrage: {str(e)}")
+        #log_debug(f"Erreur lors du démarrage: {str(e)}")
         iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.Critical)
         return False
 
@@ -640,59 +622,59 @@ class SplitMergeDialog(QDialog):
 
     def populate_layers_combo(self, combo):
         combo.clear()
-        log_debug(f"Remplissage du combo {combo.objectName()}")
+        #log_debug(f"Remplissage du combo {combo.objectName()}")
 
         # Récupérer toutes les couches du projet
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer):
                 combo.addItem(layer.name(), layer.id())
-                log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
+                #log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
 
     def on_layer_selected(self):
         """Méthode appelée quand une couche est sélectionnée dans les combobox"""
         segments_id = self.segments_combo.currentData()
         compositions_id = self.compositions_combo.currentData()
 
-        log_debug(f"Sélection des couches:")
-        log_debug(f"- ID couche segments: {segments_id}")
-        log_debug(f"- ID couche compositions: {compositions_id}")
+        #log_debug(f"Sélection des couches:")
+        #log_debug(f"- ID couche segments: {segments_id}")
+        #log_debug(f"- ID couche compositions: {compositions_id}")
 
         self.selected_segments_layer = QgsProject.instance().mapLayer(segments_id)
         self.selected_compositions_layer = QgsProject.instance().mapLayer(compositions_id)
 
-        log_debug(f"Couches récupérées:")
-        log_debug(f"- Segments: {self.selected_segments_layer.name() if self.selected_segments_layer else 'None'}")
-        log_debug(f"- Compositions: {self.selected_compositions_layer.name() if self.selected_compositions_layer else 'None'}")
+        #log_debug(f"Couches récupérées:")
+        #log_debug(f"- Segments: {self.selected_segments_layer.name() if self.selected_segments_layer else 'None'}")
+        #log_debug(f"- Compositions: {self.selected_compositions_layer.name() if self.selected_compositions_layer else 'None'}")
 
         # Sauvegarder les sélections
         settings = QSettings()
         settings.setValue("network_manager/segments_layer_id", segments_id)
         settings.setValue("network_manager/compositions_layer_id", compositions_id)
 
-        log_debug("Settings sauvegardés")
+        #log_debug("Settings sauvegardés")
 
     def load_settings(self):
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
 
-        log_debug(f"Chargement des settings:")
-        log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
-        log_debug(f"- ID compositions sauvegardé: {compositions_layer_id}")
+        #log_debug(f"Chargement des settings:")
+        #log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
+        #log_debug(f"- ID compositions sauvegardé: {compositions_layer_id}")
 
         segments_index = self.segments_combo.findData(segments_layer_id)
         compositions_index = self.compositions_combo.findData(compositions_layer_id)
 
-        log_debug(f"Index trouvés:")
-        log_debug(f"- Index segments: {segments_index}")
-        log_debug(f"- Index compositions: {compositions_index}")
+        #log_debug(f"Index trouvés:")
+        #log_debug(f"- Index segments: {segments_index}")
+        #log_debug(f"- Index compositions: {compositions_index}")
 
         if segments_index >= 0:
             self.segments_combo.setCurrentIndex(segments_index)
-            log_debug(f"Index segments défini: {segments_index}")
+            #log_debug(f"Index segments défini: {segments_index}")
         if compositions_index >= 0:
             self.compositions_combo.setCurrentIndex(compositions_index)
-            log_debug(f"Index compositions défini: {compositions_index}")
+            #log_debug(f"Index compositions défini: {compositions_index}")
 
     def save_settings(self):
         settings = QSettings()
@@ -755,6 +737,6 @@ class SplitMergeDialog(QDialog):
         # Marquer le projet comme modifié pour s'assurer que le changement est sauvegardé
         project.setDirty(True)
 
-def log_debug(message):
-    """Fonction utilitaire pour le logging"""
-    print(f"[DEBUG] {message}")
+# def #log_debug(message):
+#     """Fonction utilitaire pour le logging"""
+#     print(f"[DEBUG] {message}")
