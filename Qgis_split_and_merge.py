@@ -1,3 +1,4 @@
+from PyQt5 import QtCore
 from qgis.core import (
     QgsProject,
     QgsVectorLayer,
@@ -19,8 +20,9 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QGroupBox,
-    QCheckBox
+    QCheckBox,
 )
+from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
 from typing import Literal, Optional, cast
 import time
@@ -108,12 +110,19 @@ def process_new_feature(fid):
             if segment_lists:
                 next_id = get_next_id()
                 print(f"Nouvel ID à attribuer: {next_id}")
+                for segments_list in segment_lists:
+                    if len(segments_list) == 1:
+                        update_segment_id(fid, next_id)
+                        new_segments = process_single_segment_composition(segment_id, next_id, segments_list)
+                        if new_segments is None:
+                            continue  # L'utilisateur a annulé
+                        new_segments_list = new_segments
+                    else:
+                        # Mettre à jour l'ID du nouveau segment
+                        update_segment_id(fid, next_id)
+                        # Mettre à jour les compositions
+                        update_compositions_segments(segment_id, next_id, original_feature, source_feature, segment_lists)
 
-                # Mettre à jour les compositions
-                update_compositions_segments(segment_id, next_id, original_feature, source_feature, segment_lists)
-
-                # Mettre à jour l'ID du nouveau segment
-                update_segment_id(fid, next_id)
             else:
                 print("ATTENTION: Aucune composition trouvée pour ce segment")
         else:
@@ -242,6 +251,22 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
         except Exception as e:
             print(f"ERREUR lors de la mise à jour: {str(e)}")
 
+def process_single_segment_composition(old_id, new_id, segments_list):
+    """Gère le cas d'une composition à segment unique"""
+    dialog = QMessageBox()
+    dialog.setIcon(QMessageBox.Warning)
+    dialog.setWindowTitle("Vérification nécessaire")
+    dialog.setText("Attention, composition ne comportant auparavant qu'un seul segment. "
+                  "Impossible de déterminer le sens, veuillez vérifier que la proposition est bonne.")
+
+    new_segments = [old_id, new_id]
+    dialog.setInformativeText(f"Nouvelle composition proposée: {new_segments}")
+
+    dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+    result = dialog.exec_()
+
+    return new_segments if result == QMessageBox.Ok else None
+
 @timer_decorator
 def clean_invalid_segments() -> None:
     """
@@ -365,6 +390,10 @@ def start_script():
     global segments_layer, compositions_layer, id_field_index, segments_field_index
 
     try:
+        settings = QSettings()
+        segments_layer_name = settings.value("split_merge/segments_layer", "segments")
+        compositions_layer_name = settings.value("split_merge/compositions_layer", "compositions")
+
         project = QgsProject.instance()
         if not project:
             raise Exception("Aucun projet QGIS n'est ouvert")
@@ -377,8 +406,8 @@ def start_script():
         if not compositions_layers:
             raise Exception("La couche 'compositions' n'a pas été trouvée")
 
-        segments_layer = segments_layers[0]
-        compositions_layer = compositions_layers[0]
+        segments_layer = cast(QgsVectorLayer, segments_layers[0])
+        compositions_layer = cast(QgsVectorLayer, compositions_layers[0])
 
         if not isinstance(segments_layer, QgsVectorLayer):
             raise Exception("La couche 'segments' n'est pas une couche vectorielle valide")
@@ -394,24 +423,21 @@ def start_script():
             raise Exception("Le champ 'segments' n'a pas été trouvé dans la couche compositions")
 
         segments_layer.featureAdded.connect(feature_added)
-        iface.messageBar().pushMessage("Info", "Script démarré avec succès", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Script démarré avec succès", level=Qgis.MessageLevel.Info)
         return True
 
     except Exception as e:
-        iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.MessageLevel.Critical)
         return False
 
 def stop_script():
     global segments_layer
+
     try:
-        if segments_layer:
-            try:
-                segments_layer.featureAdded.disconnect(feature_added)
-            except:
-                pass  # Ignore si déjà déconnecté
-        iface.messageBar().pushMessage("Info", "Script arrêté", level=Qgis.Info)
-    except Exception as e:
-        iface.messageBar().pushMessage("Erreur", f"Erreur lors de l'arrêt: {str(e)}", level=Qgis.Warning)
+        segments_layer.featureAdded.disconnect(feature_added)
+    except:
+        pass  # Ignore si déjà déconnecté
+    iface.messageBar().pushMessage("Info", "Script arrêté", level=Qgis.MessageLevel.Info)
 
 def show_dialog():
     dialog = SplitMergeDialog(iface.mainWindow())
@@ -426,16 +452,17 @@ class SplitMergeDialog(QDialog):
         self.script_running = False
         self.init_ui()
         self.load_settings()
-        # Auto-démarrer le script au lancement
-        QTimer.singleShot(100, self.toggle_script)
-
+        # Auto-démarrer le script au lancement si l'on coche la case correspondante.'
+        settings = QSettings()
+        if settings.value("split_merge/auto_start", True, type=bool):
+            QTimer.singleShot(100, self.toggle_script)
 
     def init_ui(self):
         layout = QVBoxLayout()
 
         # Titre
         title_label = QLabel("Gestionnaire de Segments et Compositions")
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("""
             font-size: 14px;
             font-weight: bold;
@@ -468,7 +495,7 @@ class SplitMergeDialog(QDialog):
 
         # Status
         self.status_label = QLabel("Status: Arrêté")
-        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
 
         # Boutons de contrôle
@@ -526,6 +553,9 @@ class SplitMergeDialog(QDialog):
 
         self.setLayout(layout)
 
+        self.segments_combo.currentIndexChanged.connect(self.on_layer_selected)
+        self.compositions_combo.currentIndexChanged.connect(self.on_layer_selected)
+
     def toggle_script(self):
         """Démarre ou arrête le script"""
         try:
@@ -540,7 +570,6 @@ class SplitMergeDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Une erreur est survenue: {str(e)}")
 
-
     def update_ui_state(self):
         """Met à jour l'interface selon l'état du script"""
         if self.script_running:
@@ -553,9 +582,16 @@ class SplitMergeDialog(QDialog):
 
     def populate_layers_combo(self, combo):
         combo.clear()
+        # Récupérer toutes les couches du projet
         for layer in QgsProject.instance().mapLayers().values():
-            if layer.type() == 0:  # Vector layers only
+            if isinstance(layer, QgsVectorLayer):
                 combo.addItem(layer.name(), layer.id())
+
+    def on_layer_selected(self):
+        # Sauvegarder les sélections
+        settings = QSettings()
+        settings.setValue("split_merge/segments_layer", self.segments_combo.currentText())
+        settings.setValue("split_merge/compositions_layer", self.compositions_combo.currentText())
 
     def load_settings(self):
         settings = QSettings()
@@ -619,8 +655,8 @@ class SplitMergeDialog(QDialog):
         """
         QMessageBox.information(self, "Information", info_text)
 
-    def closeEvent(self, event):
-        event.accept()
+    def closeEvent(self, a0):
+        a0.accept()
 
     def save_auto_start_setting(self, state):
         settings = QSettings()
