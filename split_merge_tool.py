@@ -30,13 +30,13 @@ class SplitMergeTool:
     def on_project_load(self):
         """Fonction appelée quand un projet est chargé"""
         self.project_loaded = True
-        if self.auto_start and not hasattr(self, 'dialog') or not self.dialog or not self.dialog.script_running:
+        if not hasattr(self, 'dialog') or not self.dialog or not self.dialog.script_running:
             QTimer.singleShot(1000, self.check_and_start)
 
 
     def check_and_start(self):
         """Vérifie si les couches nécessaires sont présentes avant de démarrer"""
-        if not self.auto_start or not self.project_loaded:
+        if not self.project_loaded:
             return
 
         project = QgsProject.instance()
@@ -50,13 +50,13 @@ class SplitMergeTool:
         segments_layers = project.mapLayersByName(segments_layer)
         compositions_layers = project.mapLayersByName(compositions_layer)
 
-        if segments_layers and compositions_layers:
-            self.quick_start()
-        else:
-            self.iface.messageBar().pushWarning(
-                "Split & Merge",
-                f"Les couches requises ({segments_layer} et {compositions_layer}) n'ont pas été trouvées"
-            )
+        # if segments_layers and compositions_layers:
+        #     self.quick_start()
+        # else:
+        #     self.iface.messageBar().pushWarning(
+        #         "Split & Merge",
+        #         f"Les couches requises ({segments_layer} et {compositions_layer}) n'ont pas été trouvées"
+        #     )
 
     def unload(self):
         """Supprime les éléments de l'interface"""
@@ -74,23 +74,23 @@ class SplitMergeTool:
         self.dialog.show()
         self.dialog.activateWindow()
 
-    def quick_start(self):
-        """Démarre directement le script sans afficher l'interface"""
-        try:
-            # Ne démarrer que si le script n'est pas déjà en cours d'exécution
-            if not hasattr(self, 'dialog') or not self.dialog or not self.dialog.script_running:
-                success = start_script()
-                if success:
-                    self.auto_start = True  # Maintenir l'auto-start actif
-                    if self.dialog:
-                        self.dialog.script_running = True
-                        self.dialog.update_ui_state()  # Mettre à jour l'interface si elle existe
-                    self.iface.messageBar().pushSuccess(
-                        "Split & Merge",
-                        "Script démarré automatiquement"
-                    )
-        except Exception as e:
-            self.iface.messageBar().pushCritical(
-                "Split & Merge",
-                f"Erreur au démarrage: {str(e)}"
-            )
+    # def quick_start(self):
+    #     """Démarre directement le script sans afficher l'interface"""
+    #     try:
+    #         # Ne démarrer que si le script n'est pas déjà en cours d'exécution
+    #         if not hasattr(self, 'dialog') or not self.dialog or not self.dialog.script_running:
+    #             success = start_script()
+    #             if success:
+    #                 self.auto_start = True  # Maintenir l'auto-start actif
+    #                 if self.dialog:
+    #                     self.dialog.script_running = True
+    #                     self.dialog.update_ui_state()  # Mettre à jour l'interface si elle existe
+    #                 self.iface.messageBar().pushSuccess(
+    #                     "Split & Merge",
+    #                     "Script démarré automatiquement"
+    #                 )
+    #     except Exception as e:
+    #         self.iface.messageBar().pushCritical(
+    #             "Split & Merge",
+    #             f"Erreur au démarrage: {str(e)}"
+    #         )
