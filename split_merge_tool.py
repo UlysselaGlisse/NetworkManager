@@ -42,12 +42,14 @@ class SplitMergeTool:
 
     def check_required_layers(self):
         settings = QSettings()
-        segments_layer_name = settings.value("split_merge/segments_layer", "segments")
-        compositions_layer_name = settings.value("split_merge/compositions_layer", "compositions")
+        segments_layer_id = settings.value("split_merge/segments_layer_id", "")
+        compositions_layer_id = settings.value("split_merge/compositions_layer_id", "")
 
         project = QgsProject.instance()
-        return (len(project.mapLayersByName(segments_layer_name)) > 0 and
-                len(project.mapLayersByName(compositions_layer_name)) > 0)
+        segments_layer = project.mapLayer(segments_layer_id)
+        compositions_layer = project.mapLayer(compositions_layer_id)
+
+        return segments_layer is not None and compositions_layer is not None
 
     def check_and_start(self):
         """Vérifie si les couches nécessaires sont présentes avant de démarrer"""
