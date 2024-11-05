@@ -12,7 +12,17 @@ git clone https://github.com/UlysselaGlisse/NetworkManager.git
 
 ### Linux : 
 
-Déplacer le répertoire dans le dossier des plugins de Qgis normalement ~.local/share/QGIS/QGIS3/profiles/default/python/plugins.
+Déplacer le répertoire dans le dossier des plugins de Qgis normalement :
+
+`~.local/share/QGIS/QGIS3/profiles/default/python/plugins.`
+
+### Windows : 
+
+`C:\Users\USER\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`
+
+### Mac OS :
+
+`Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins`
 
 
 Dans Qgis, Extensions >  Installer/Gérer les extensions
