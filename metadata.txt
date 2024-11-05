@@ -1,12 +1,12 @@
 [general]
 name=NetworkManager
 description=Outil de gestion de réseau
-version=1.0
+version=0.1
 qgisMinimumVersion=3.0
 author=Ulysse Descamps
 email=ulysse38250@gmail.com
 about=Ce plugin permet de gérer automatiquement la division des segments et la mise à jour des compositions
-repository=URL_du_repository
+repository=https://github.com/UlysselaGlisse/NetworkManager
 category=Vector
 icon=icons/icon.png
 experimental=True
