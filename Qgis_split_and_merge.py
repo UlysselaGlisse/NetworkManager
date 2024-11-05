@@ -436,8 +436,12 @@ class SplitMergeDialog(QDialog):
         self.init_ui()
         self.load_settings()
         # Auto-démarrer le script au lancement si l'on coche la case correspondante.'
-        settings = QSettings()
-        if settings.value("split_merge/auto_start", True, type=bool):
+        project = QgsProject.instance()
+        auto_start, _ = project.readBoolEntry("split_merge", "auto_start", False)
+        self.auto_start_checkbox.setChecked(auto_start)
+
+        # Auto-démarrer le script si configuré dans le projet
+        if auto_start:
             QTimer.singleShot(100, self.toggle_script)
 
     def init_ui(self):
@@ -677,8 +681,10 @@ class SplitMergeDialog(QDialog):
         a0.accept()
 
     def save_auto_start_setting(self, state):
-        settings = QSettings()
-        settings.setValue("split_merge/auto_start", bool(state))
+        project = QgsProject.instance()
+        project.writeEntry("split_merge", "auto_start", bool(state))
+        # Marquer le projet comme modifié pour s'assurer que le changement est sauvegardé
+        project.setDirty(True)
 
 def log_debug(message):
     """Fonction utilitaire pour le logging"""

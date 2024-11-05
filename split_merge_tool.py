@@ -31,13 +31,18 @@ class SplitMergeTool:
     def on_project_load(self):
         """Fonction appelée quand un projet est chargé"""
         self.project_loaded = True
-        settings = QSettings()
-        if settings.value("split_merge/auto_start", True, type=bool):
+        project = QgsProject.instance()
+        # Vérifier si l'auto-démarrage est activé pour ce projet
+        auto_start, _ = project.readBoolEntry("split_merge", "auto_start", False)
+        if auto_start:
             QTimer.singleShot(1000, self.auto_start_script)
 
     def auto_start_script(self):
-        # Vérifier que les couches nécessaires sont présentes
-        if self.check_required_layers():
+        project = QgsProject.instance()
+        # Vérifier si l'auto-démarrage est activé pour ce projet
+        auto_start, _ = project.readBoolEntry("split_merge", "auto_start", False)
+
+        if auto_start and self.check_required_layers():
             start_script()
 
     def check_required_layers(self):
