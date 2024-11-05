@@ -24,6 +24,8 @@ Déplacer le répertoire dans le dossier des plugins de Qgis normalement :
 
 `Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins`
 
+---
+
 
 Dans Qgis, Extensions >  Installer/Gérer les extensions
 
