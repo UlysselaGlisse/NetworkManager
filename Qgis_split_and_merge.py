@@ -90,7 +90,7 @@ def process_new_feature(fid):
                 for segments_list in segment_lists:
                     if len(segments_list) == 1:
                         update_segment_id(fid, next_id)
-                        new_segments = process_single_segment_composition(segment_id, next_id, segments_list)
+                        new_segments = process_single_segment_composition(fid, segment_id, next_id, segments_list)
                         if new_segments is None:
                             continue  # L'utilisateur a annulé
                         new_segments_list = new_segments
@@ -214,21 +214,63 @@ def update_compositions_segments(old_id, new_id, original_feature, new_feature, 
         except Exception as e:
             print(f"ERREUR lors de la mise à jour: {str(e)}")
 
-def process_single_segment_composition(old_id, new_id, segments_list):
-    """Gère le cas d'une composition à segment unique"""
-    dialog = QMessageBox()
-    dialog.setIcon(QMessageBox.Warning)
-    dialog.setWindowTitle("Vérification nécessaire")
-    dialog.setText("Attention, composition ne comportant auparavant qu'un seul segment. "
-                  "Impossible de déterminer le sens, veuillez vérifier que la proposition est bonne.")
+def process_single_segment_composition(fid, old_id, new_id, segments_list):
+    """Gère le cas d'une composition à segment unique """
 
-    new_segments = [old_id, new_id]
-    dialog.setInformativeText(f"Nouvelle composition proposée: {new_segments}")
+    class SingleSegmentDialog(QDialog):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.setWindowTitle("Vérification nécessaire")
+            self.setMinimumWidth(400)
+            self.current_segments = [old_id, new_id]
+            self.setup_ui()
 
-    dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        def setup_ui(self):
+            layout = QVBoxLayout()
+
+            # Message d'avertissement
+            warning_label = QLabel("Attention, composition ne comportant auparavant qu'un seul segment. "
+                                 "Impossible de déterminer le sens, veuillez vérifier que la proposition est bonne.")
+            warning_label.setWordWrap(True)
+            layout.addWidget(warning_label)
+
+            # Affichage de la proposition
+            self.proposal_label = QLabel()
+            self.update_proposal_label()
+            layout.addWidget(self.proposal_label)
+
+            # Boutons
+            buttons_layout = QHBoxLayout()
+
+            invert_button = QPushButton("Inverser l'ordre")
+            invert_button.clicked.connect(self.invert_order)
+            buttons_layout.addWidget(invert_button)
+
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(self.accept)
+            buttons_layout.addWidget(ok_button)
+
+            cancel_button = QPushButton("Annuler")
+            cancel_button.clicked.connect(self.reject)
+            buttons_layout.addWidget(cancel_button)
+
+            layout.addLayout(buttons_layout)
+            self.setLayout(layout)
+
+        def update_proposal_label(self):
+            self.proposal_label.setText(f"Nouvelle composition proposée: {self.current_segments}")
+
+        def invert_order(self):
+            self.current_segments.reverse()
+            self.update_proposal_label()
+
+    dialog = SingleSegmentDialog()
     result = dialog.exec_()
 
-    return new_segments if result == QMessageBox.Ok else None
+    if result == QDialog.Accepted:
+        return dialog.current_segments
+    else:
+        return None
 
 @timer_decorator
 def clean_invalid_segments() -> None:
