@@ -25,33 +25,9 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
 from typing import Literal, Optional, cast
-import time
-from functools import wraps
+from .utils import timer_decorator, print_geometry_info, get_features_list
 
 last_fid = 0
-
-def timer_decorator(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        end = time.time()
-        print(f"{func.__name__} a pris {(end - start)*1000:.2f} ms")
-        return result
-    return wrapper
-
-def get_features_list(layer, request=None):
-    features = []
-    if request:
-        iterator = layer.getFeatures(request)
-    else:
-        iterator = layer.getFeatures()
-
-    feature = next(iterator, None)
-    while feature:
-        features.append(feature)
-        feature = next(iterator, None)
-    return features
 
 @timer_decorator
 def feature_added(fid):
@@ -108,6 +84,7 @@ def process_new_feature(fid):
             print(f"Nombre de compositions trouvées: {len(segment_lists)}")
 
             if segment_lists:
+                print(segment_lists)
                 next_id = get_next_id()
                 print(f"Nouvel ID à attribuer: {next_id}")
                 for segments_list in segment_lists:
@@ -118,10 +95,12 @@ def process_new_feature(fid):
                             continue  # L'utilisateur a annulé
                         new_segments_list = new_segments
                     else:
-                        # Mettre à jour l'ID du nouveau segment
-                        update_segment_id(fid, next_id)
-                        # Mettre à jour les compositions
-                        update_compositions_segments(segment_id, next_id, original_feature, source_feature, segment_lists)
+                        pass
+                    break
+                # Mettre à jour l'ID du nouveau segment
+                update_segment_id(fid, next_id)
+                # Mettre à jour les compositions
+                update_compositions_segments(segment_id, next_id, original_feature, source_feature, segment_lists)
 
             else:
                 print("ATTENTION: Aucune composition trouvée pour ce segment")
@@ -132,22 +111,6 @@ def process_new_feature(fid):
 
     last_fid = fid
     clean_invalid_segments()
-
-def print_geometry_info(geometry, label):
-    """Affiche les informations détaillées sur une géométrie"""
-    if not geometry or geometry.isEmpty():
-        print(f"{label}: Géométrie invalide ou vide")
-        return
-
-    points = geometry.asPolyline()
-    print(f"""
-    {label}:
-    - Type: {geometry.wkbType()}
-    - Longueur: {geometry.length():.2f}
-    - Nombre de points: {len(points)}
-    - Premier point: {points[0]}
-    - Dernier point: {points[-1]}
-    """)
 
 @timer_decorator
 def get_compositions_list_segments(segment_id):
@@ -345,45 +308,6 @@ def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment
             return False
 
     return True
-
-def update_compositions_geometry():
-    """
-    Met à jour la géométrie des compositions en fusionnant les géométries des segments associés
-    """
-    # print("update_compositions_geometry")
-    # compositions_layer.startEditing()
-    # compositions = get_features_list(compositions_layer)
-
-    # for composition in compositions:  # Utiliser composition au lieu de feature
-    #     segments_str = composition['segments']
-
-    # # Skip si pas de segments
-    # if not segments_str or str(segments_str).upper() == 'NULL':
-    #     continue
-
-    # # Obtenir la liste des IDs des segments
-    # segments_ids = [int(id.strip()) for id in str(segments_str).split(',')]
-
-    # # Collecter toutes les géométries des segments associés
-    # collected_geom = None
-    # for segment_id in segments_ids:
-    #     # Récupérer le segment
-    #     expression = f"\"id\" = '{segment_id}'"
-    #     request = QgsFeatureRequest().setFilterExpression(expression)
-    #     segment_features = segments_layer.getFeatures(request)
-
-    #     # Prendre le premier (et normalement unique) segment correspondant
-    #     segment = next(segment_features, None)
-    #     if segment:
-    #         if collected_geom is None:
-    #             collected_geom = segment.geometry()
-    #         else:
-    #             collected_geom = collected_geom.combine(segment.geometry())
-
-    # # Mettre à jour la géométrie de la composition
-    # if collected_geom:
-    #     composition.setGeometry(collected_geom)
-    #     compositions_layer.updateFeature(composition)
 
 @timer_decorator
 def start_script():
