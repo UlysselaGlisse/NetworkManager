@@ -82,6 +82,8 @@ def update_compositions_segments(segments_layer, compositions_layer, old_id, new
     original_geom = original_feature.geometry()
     new_geom = new_feature.geometry()
 
+    compositions_dict = {feature['segments']: feature.id() for feature in compositions_layer.getFeatures()}
+
     for segments_list in segment_lists:
         #print(f"\nTraitement liste: {segments_list}")
         try:
@@ -109,12 +111,10 @@ def update_compositions_segments(segments_layer, compositions_layer, old_id, new
             #print(f"Nouvelle liste: {new_segments_list}")
 
             # Mettre à jour la composition
-            request = QgsFeatureRequest().setFilterExpression(f"segments = '{','.join(map(str, segments_list))}'")
-            composition_feature = next(compositions_layer.getFeatures(request), None)
-
-            if composition_feature:
-                result = compositions_layer.changeAttributeValue(
-                    composition_feature.id(),
+            composition_id = compositions_dict.get(','.join(map(str, segments_list)))
+            if composition_id:
+                compositions_layer.changeAttributeValue(
+                    composition_id,
                     compositions_layer.fields().indexOf('segments'),
                     ','.join(map(str, new_segments_list))
                 )
