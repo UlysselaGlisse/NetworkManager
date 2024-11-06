@@ -23,7 +23,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
-from .utils import get_features_list
+from .utils import get_features_list, timer_decorator
 
 def get_compositions_list_segments(segment_id, compositions_layer):
     """
@@ -69,6 +69,7 @@ def get_compositions_list_segments(segment_id, compositions_layer):
     #print(f"\nNombre total de listes trouvées: {len(all_segments_lists)}")
     return all_segments_lists
 
+@timer_decorator
 def update_compositions_segments(segments_layer, compositions_layer, old_id, new_id, original_feature, new_feature, segment_lists):
     """
     Met à jour les compositions après division d'un segment
@@ -124,7 +125,6 @@ def update_compositions_segments(segments_layer, compositions_layer, old_id, new
 
         except Exception as e:
             print(f"ERREUR lors de la mise à jour: {str(e)}")
-
 
 def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment_geom=None):
     """

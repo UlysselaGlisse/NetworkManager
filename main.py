@@ -123,6 +123,14 @@ def process_new_feature(fid):
 
     last_fid = fid
     clean_invalid_segments(segments_layer, compositions_layer)
+
+def features_deleted(fids):
+    """
+    Nettoie les compositions des segments supprimés
+    """
+    clean_invalid_segments(segments_layer, compositions_layer)
+
+
 #@timer_decorator
 def start_script():
     global segments_layer, compositions_layer, id_field_index, segments_field_index
@@ -172,6 +180,7 @@ def start_script():
             raise Exception("Le champ 'segments' n'a pas été trouvé dans la couche compositions")
 
         segments_layer.featureAdded.connect(feature_added)
+        segments_layer.featuresDeleted.connect(features_deleted)
         iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager a démarré", level=Qgis.Info)
         return True
 
@@ -186,6 +195,7 @@ def stop_script():
     try:
         if segments_layer:
             segments_layer.featureAdded.disconnect(feature_added)
+            segments_layer.featuresDeleted.disconnect(feature_deleted)
         segments_layer = None
         compositions_layer = None
     except:
