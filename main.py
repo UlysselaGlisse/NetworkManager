@@ -69,6 +69,7 @@ def process_new_feature(fid):
         return
 
     print(segments_column_name)
+    print(segments_field_index)
 
     segment_id = source_feature.attribute()[segments_field_index]
 
@@ -134,39 +135,38 @@ def features_deleted(fids):
     """
     clean_invalid_segments(segments_layer, compositions_layer)
 
-
 #@timer_decorator
 def start_script():
-    global segments_layer, compositions_layer, id_field_index, segments_field_index
+    global segments_layer, compositions_layer, id_field_index, segments_field_index, segments_column_name
 
     try:
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
-        segments_column_name = settings.value("network_manager/segments_column_name", "")
+        # segments_column_name = settings.value("network_manager/segments_column_name", "")
 
-        #log_debug(f"Démarrage du script avec:")
-        #log_debug(f"- ID segments: {segments_layer_id}")
-        #log_debug(f"- ID compositions: {compositions_layer_id}")
+        log_debug(f"Démarrage du script avec:")
+        log_debug(f"- ID segments: {segments_layer_id}")
+        log_debug(f"- ID compositions: {compositions_layer_id}")
+        log_debug(f"- Nom de la colonne segments: {segments_column_name}")
 
         project = QgsProject.instance()
         if not project:
-            #log_debug("Pas de projet QGIS ouvert")
+            log_debug("Pas de projet QGIS ouvert")
             raise Exception("Aucun projet QGIS n'est ouvert")
 
-        # Correction ici : on assigne directement à segments_layer et compositions_layer
         segments_layer = project.mapLayer(segments_layer_id)
         compositions_layer = project.mapLayer(compositions_layer_id)
 
-        #log_debug(f"Couches récupérées:")
-        #log_debug(f"- Segments: {segments_layer.name() if segments_layer else 'None'}")
-        #log_debug(f"- Compositions: {compositions_layer.name() if compositions_layer else 'None'}")
+        log_debug(f"Couches récupérées:")
+        log_debug(f"- Segments: {segments_layer.name() if segments_layer else 'None'}")
+        log_debug(f"- Compositions: {compositions_layer.name() if compositions_layer else 'None'}")
 
         if not segments_layer:
-            #log_debug("Couche segments non trouvée")
+            log_debug("Couche segments non trouvée")
             raise Exception("Veuillez sélectionner une couche de segments valide")
         if not compositions_layer:
-            #log_debug("Couche compositions non trouvée")
+            log_debug("Couche compositions non trouvée")
             raise Exception("Veuillez sélectionner une couche de compositions valide")
 
         # Vérifier que ce sont des couches vectorielles
@@ -175,6 +175,7 @@ def start_script():
         if not isinstance(compositions_layer, QgsVectorLayer):
             raise Exception("La couche de compositions n'est pas une couche vectorielle valide")
 
+        log_debug(f"Segments Column Name: {segments_column_name}")
         # Vérifier les champs requis
         id_field_index = segments_layer.fields().indexOf('id')
         segments_field_index = compositions_layer.fields().indexOf(segments_column_name)
@@ -182,7 +183,7 @@ def start_script():
         if id_field_index == -1:
             raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
         if segments_field_index == -1:
-            raise Exception("Le champ 'segments' n'a pas été trouvé dans la couche compositions")
+            raise Exception(f"Le champ '{segments_column_name}' n'a pas été trouvé dans la couche compositions")
 
         segments_layer.featureAdded.connect(feature_added)
         segments_layer.featuresDeleted.connect(features_deleted)
@@ -190,7 +191,7 @@ def start_script():
         return True
 
     except Exception as e:
-        #log_debug(f"Erreur lors du démarrage: {str(e)}")
+        log_debug(f"Erreur lors du démarrage: {str(e)}")
         iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.Critical)
         return False
 
@@ -255,9 +256,10 @@ class SplitMergeDialog(QDialog):
         layers_group.setLayout(layers_layout)
         layout.addWidget(layers_group)
 
-        self.segments_column_edit = QLineEdit("segments")  # Mot par défaut
+        self.segments_column_combo = QComboBox()
+        self.segments_column_combo.setPlaceholderText("Sélectionnez un champ")
         layout.addWidget(QLabel("Nom de l'attribut où sont renseignés les listes de segments:"))
-        layout.addWidget(self.segments_column_edit)
+        layout.addWidget(self.segments_column_combo)
 
         # Status
         self.status_label = QLabel("Status: Arrêté")
@@ -331,6 +333,9 @@ class SplitMergeDialog(QDialog):
                     QMessageBox.warning(self, "Attention", "Veuillez sélectionner les couches segments et compositions")
                     return
 
+                global segments_field_index
+                segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
+
                 success = start_script()
                 if success:
                     self.script_running = True
@@ -353,61 +358,72 @@ class SplitMergeDialog(QDialog):
 
     def populate_layers_combo(self, combo):
         combo.clear()
-        #log_debug(f"Remplissage du combo {combo.objectName()}")
+        log_debug(f"Remplissage du combo {combo.objectName()}")
 
         # Récupérer toutes les couches du projet
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer):
                 combo.addItem(layer.name(), layer.id())
-                #log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
+                log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
+
+    def populate_field_combo(self):
+        composition_layer = self.selected_compositions_layer
+        if composition_layer:
+            self.segments_column_combo.clear()
+            field_names = composition_layer.fields().names()
+            self.segments_column_combo.addItems(field_names)
 
     def on_layer_selected(self):
         """Méthode appelée quand une couche est sélectionnée dans les combobox"""
         segments_id = self.segments_combo.currentData()
         compositions_id = self.compositions_combo.currentData()
 
-        #log_debug(f"Sélection des couches:")
-        #log_debug(f"- ID couche segments: {segments_id}")
-        #log_debug(f"- ID couche compositions: {compositions_id}")
+        log_debug(f"Sélection des couches:")
+        log_debug(f"- ID couche segments: {segments_id}")
+        log_debug(f"- ID couche compositions: {compositions_id}")
 
         self.selected_segments_layer = QgsProject.instance().mapLayer(segments_id)
         self.selected_compositions_layer = QgsProject.instance().mapLayer(compositions_id)
 
-        #log_debug(f"Couches récupérées:")
-        #log_debug(f"- Segments: {self.selected_segments_layer.name() if self.selected_segments_layer else 'None'}")
-        #log_debug(f"- Compositions: {self.selected_compositions_layer.name() if self.selected_compositions_layer else 'None'}")
+        self.populate_field_combo()
+        if self.segments_column_combo.currentText():  # Vérifiez que quelque chose est sélectionné
+            global segments_field_index
+            segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
+
+        log_debug(f"Couches récupérées:")
+        log_debug(f"- Segments: {self.selected_segments_layer.name() if self.selected_segments_layer else 'None'}")
+        log_debug(f"- Compositions: {self.selected_compositions_layer.name() if self.selected_compositions_layer else 'None'}")
 
         # Sauvegarder les sélections
         settings = QSettings()
         settings.setValue("network_manager/segments_layer_id", segments_id)
         settings.setValue("network_manager/compositions_layer_id", compositions_id)
-        global list_of_segments_column_name
-        list_of_segments_column_name = settings.setValue("network_manager/segments_column_name", self.segments_column_edit.text())
+        settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
 
-        #log_debug("Settings sauvegardés")
+        log_debug("Settings sauvegardés")
 
     def load_settings(self):
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
 
-        #log_debug(f"Chargement des settings:")
-        #log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
-        #log_debug(f"- ID compositions sauvegardé: {compositions_layer_id}")
+        log_debug(f"Chargement des settings:")
+        log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
+        log_debug(f"- ID compositions sauvegardé: {compositions_layer_id}")
 
         segments_index = self.segments_combo.findData(segments_layer_id)
         compositions_index = self.compositions_combo.findData(compositions_layer_id)
 
-        #log_debug(f"Index trouvés:")
-        #log_debug(f"- Index segments: {segments_index}")
-        #log_debug(f"- Index compositions: {compositions_index}")
+        log_debug(f"Index trouvés:")
+        log_debug(f"- Index segments: {segments_index}")
+        log_debug(f"- Index compositions: {compositions_index}")
 
         if segments_index >= 0:
             self.segments_combo.setCurrentIndex(segments_index)
-            #log_debug(f"Index segments défini: {segments_index}")
+            log_debug(f"Index segments défini: {segments_index}")
         if compositions_index >= 0:
             self.compositions_combo.setCurrentIndex(compositions_index)
-            #log_debug(f"Index compositions défini: {compositions_index}")
+            log_debug(f"Index compositions défini: {compositions_index}")
 
     def save_settings(self):
         settings = QSettings()
@@ -470,6 +486,6 @@ class SplitMergeDialog(QDialog):
         # Marquer le projet comme modifié pour s'assurer que le changement est sauvegardé
         project.setDirty(True)
 
-# def #log_debug(message):
-#     """Fonction utilitaire pour le logging"""
-#     print(f"[DEBUG] {message}")
+def log_debug(message):
+    """Fonction utilitaire pour le logging"""
+    print(f"[DEBUG] {message}")
