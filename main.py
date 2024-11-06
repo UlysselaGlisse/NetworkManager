@@ -38,6 +38,7 @@ from .functions import (
 )
 from .config import segments_field_index
 
+segments_column_name = "segments"
 segments_layer = None
 compositions_layer = None
 last_fid = 0
@@ -66,9 +67,11 @@ def process_new_feature(fid):
         #print("ERREUR: Pas de champs dans la feature source")
         return
 
-    segment_id = source_feature.attributes(segments_field_index)
+    print(segments_column_name)
 
-    #print(f"ID du segment: {segment_id}")
+    segment_id = source_feature.attribute()[segments_field_index]
+
+    print(f"ID du segment: {segment_id}")
 
     if segment_id and has_duplicate_segment_id(segments_layer,segment_id):
         #print(f"Segment {segment_id} détecté comme dupliqué")
@@ -139,6 +142,7 @@ def start_script():
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
+        segments_column_name = settings.value("network_manager/segments_column_name", "")
 
         #log_debug(f"Démarrage du script avec:")
         #log_debug(f"- ID segments: {segments_layer_id}")
@@ -172,7 +176,7 @@ def start_script():
 
         # Vérifier les champs requis
         id_field_index = segments_layer.fields().indexOf('id')
-        segments_field_index = compositions_layer.fields().indexOf('segments')
+        segments_field_index = compositions_layer.fields().indexOf(segments_column_name)
 
         if id_field_index == -1:
             raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
@@ -372,6 +376,8 @@ class SplitMergeDialog(QDialog):
         settings = QSettings()
         settings.setValue("network_manager/segments_layer_id", segments_id)
         settings.setValue("network_manager/compositions_layer_id", compositions_id)
+        global list_of_segments_column_name
+        list_of_segments_column_name = settings.setValue("network_manager/segments_column_name", self.segments_column_edit.text())
 
         #log_debug("Settings sauvegardés")
 
@@ -402,6 +408,7 @@ class SplitMergeDialog(QDialog):
         settings = QSettings()
         settings.setValue("network_manager/segments_layer", self.segments_combo.currentText())
         settings.setValue("network_manager/compositions_layer", self.compositions_combo.currentText())
+        settings.setValue("network_manager/segments_column_name", self.segments_column_edit.text())
 
     def get_start_button_style(self):
         if not self.script_running:
