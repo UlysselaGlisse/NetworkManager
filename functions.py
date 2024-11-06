@@ -287,7 +287,7 @@ def clean_invalid_segments(segments_layer, compositions_layer) -> None:
             new_segments_str = ','.join(valid_segments)
             compositions_layer.changeAttributeValue(
                 composition.id(),
-                segments_field_index,
+                compositions_layer.fields().indexOf('segments'),
                 new_segments_str
             )
 

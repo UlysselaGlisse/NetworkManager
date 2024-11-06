@@ -68,12 +68,10 @@ def process_new_feature(fid):
         #print("ERREUR: Pas de champs dans la feature source")
         return
 
-    print(segments_column_name)
-    print(segments_field_index)
+    id_idx = source_feature.fields().indexOf('id')
+    segment_id = source_feature.attributes()[id_idx]
 
-    segment_id = source_feature.attribute()[segments_field_index]
-
-    print(f"ID du segment: {segment_id}")
+    # print(f"ID du segment: {segment_id}")
 
     if segment_id and has_duplicate_segment_id(segments_layer,segment_id):
         #print(f"Segment {segment_id} détecté comme dupliqué")
@@ -209,11 +207,11 @@ def stop_script():
     iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager est arrêté", level=Qgis.Info)
 
 def show_dialog():
-    dialog = SplitMergeDialog(iface.mainWindow())
+    dialog = NetworkManagerDialog(iface.mainWindow())
     dialog.show()
     return dialog
 
-class SplitMergeDialog(QDialog):
+class NetworkManagerDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Gestionnaire de réseaux")
