@@ -427,7 +427,7 @@ class NetworkManagerDialog(QDialog):
         settings = QSettings()
         settings.setValue("network_manager/segments_layer", self.segments_combo.currentText())
         settings.setValue("network_manager/compositions_layer", self.compositions_combo.currentText())
-        settings.setValue("network_manager/segments_column_name", self.segments_column_edit.text())
+        settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
 
     def get_start_button_style(self):
         if not self.script_running:
