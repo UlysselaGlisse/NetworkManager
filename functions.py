@@ -24,6 +24,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
 from .utils import get_features_list, timer_decorator
+from .config import segments_field_index
 
 def get_compositions_list_segments(segment_id, compositions_layer):
     """
@@ -286,7 +287,7 @@ def clean_invalid_segments(segments_layer, compositions_layer) -> None:
             new_segments_str = ','.join(valid_segments)
             compositions_layer.changeAttributeValue(
                 composition.id(),
-                composition.fields().indexOf('segments'),
+                segments_field_index,
                 new_segments_str
             )
 

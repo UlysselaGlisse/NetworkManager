@@ -36,6 +36,7 @@ from .functions import (
     process_single_segment_composition
 
 )
+from .config import segments_field_index
 
 segments_layer = None
 compositions_layer = None
@@ -65,8 +66,7 @@ def process_new_feature(fid):
         #print("ERREUR: Pas de champs dans la feature source")
         return
 
-    id_idx = source_feature.fields().indexOf('id')
-    segment_id = source_feature.attributes()[id_idx]
+    segment_id = source_feature.attributes(segments_field_index)
 
     #print(f"ID du segment: {segment_id}")
 
