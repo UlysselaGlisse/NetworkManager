@@ -20,7 +20,6 @@ def timer_decorator(func):
         return result
     return wrapper
 
-@timer_decorator
 def get_features_list(layer, request=None):
     features = []
     if request:
