@@ -21,6 +21,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QGroupBox,
     QCheckBox,
+    QLineEdit
 )
 from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
@@ -253,6 +254,10 @@ class SplitMergeDialog(QDialog):
 
         layers_group.setLayout(layers_layout)
         layout.addWidget(layers_group)
+
+        self.segments_column_edit = QLineEdit("segments")  # Mot par défaut
+        layout.addWidget(QLabel("Nom de l'attribut où sont renseignés les listes de segments:"))
+        layout.addWidget(self.segments_column_edit)
 
         # Status
         self.status_label = QLabel("Status: Arrêté")
