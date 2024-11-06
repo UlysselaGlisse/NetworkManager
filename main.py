@@ -134,14 +134,14 @@ def features_deleted(fids):
     clean_invalid_segments(segments_layer, compositions_layer)
 
 #@timer_decorator
+@staticmethod
 def start_script():
     global segments_layer, compositions_layer, id_field_index, segments_field_index, segments_column_name
-
     try:
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
-        # segments_column_name = settings.value("network_manager/segments_column_name", "")
+        segments_column_name = settings.value("network_manager/segments_column_name", "segments")
 
         log_debug(f"Démarrage du script avec:")
         log_debug(f"- ID segments: {segments_layer_id}")
@@ -254,10 +254,16 @@ class NetworkManagerDialog(QDialog):
         layers_group.setLayout(layers_layout)
         layout.addWidget(layers_group)
 
+        # Groupe Configuration colonne segments
+        column_group = QGroupBox("Configuration colonne segments")
+        column_layout = QVBoxLayout()
+
         self.segments_column_combo = QComboBox()
-        self.segments_column_combo.setPlaceholderText("Sélectionnez un champ")
-        layout.addWidget(QLabel("Nom de l'attribut où sont renseignés les listes de segments:"))
-        layout.addWidget(self.segments_column_combo)
+        column_layout.addWidget(QLabel("Colonne contenant les segments:"))
+        column_layout.addWidget(self.segments_column_combo)
+
+        column_group.setLayout(column_layout)
+        layout.addWidget(column_group)
 
         # Status
         self.status_label = QLabel("Status: Arrêté")
@@ -322,6 +328,13 @@ class NetworkManagerDialog(QDialog):
         self.segments_combo.currentIndexChanged.connect(self.on_layer_selected)
         self.compositions_combo.currentIndexChanged.connect(self.on_layer_selected)
 
+        # Connexions des signaux
+        self.segments_combo.currentIndexChanged.connect(self.on_layer_selected)
+        self.compositions_combo.currentIndexChanged.connect(self.on_layer_selected)
+        self.segments_column_combo.currentTextChanged.connect(self.on_column_selected)
+
+        self.setLayout(layout)
+
     def toggle_script(self):
         """Démarre ou arrête le script"""
         try:
@@ -331,8 +344,13 @@ class NetworkManagerDialog(QDialog):
                     QMessageBox.warning(self, "Attention", "Veuillez sélectionner les couches segments et compositions")
                     return
 
-                global segments_field_index
-                segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
+                if not self.segments_column_combo.currentText():
+                    QMessageBox.warning(self, "Attention", "Veuillez sélectionner la colonne segments")
+                    return
+
+                # Sauvegarder la colonne segments sélectionnée
+                settings = QSettings()
+                settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
 
                 success = start_script()
                 if success:
@@ -365,45 +383,55 @@ class NetworkManagerDialog(QDialog):
                 log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
 
     def populate_field_combo(self):
-        composition_layer = self.selected_compositions_layer
-        if composition_layer:
-            self.segments_column_combo.clear()
-            field_names = composition_layer.fields().names()
+        if not hasattr(self, 'segments_column_combo'):
+            return
+
+        self.segments_column_combo.clear()
+
+        if isinstance(self.selected_compositions_layer, QgsVectorLayer):
+            field_names = [field.name() for field in self.selected_compositions_layer.fields()]
             self.segments_column_combo.addItems(field_names)
+
+            # Restaurer la sélection précédente
+            settings = QSettings()
+            saved_column = settings.value("network_manager/segments_column_name", "segments")
+            index = self.segments_column_combo.findText(saved_column)
+            if index >= 0:
+                self.segments_column_combo.setCurrentIndex(index)
 
     def on_layer_selected(self):
         """Méthode appelée quand une couche est sélectionnée dans les combobox"""
         segments_id = self.segments_combo.currentData()
         compositions_id = self.compositions_combo.currentData()
 
-        log_debug(f"Sélection des couches:")
-        log_debug(f"- ID couche segments: {segments_id}")
-        log_debug(f"- ID couche compositions: {compositions_id}")
+        project = QgsProject.instance()
+        if project:
+            self.selected_segments_layer = project.mapLayer(segments_id)
+            self.selected_compositions_layer = project.mapLayer(compositions_id)
 
-        self.selected_segments_layer = QgsProject.instance().mapLayer(segments_id)
-        self.selected_compositions_layer = QgsProject.instance().mapLayer(compositions_id)
+            if isinstance(self.selected_compositions_layer, QgsVectorLayer):
+                self.populate_field_combo()
 
-        self.populate_field_combo()
-        if self.segments_column_combo.currentText():  # Vérifiez que quelque chose est sélectionné
-            global segments_field_index
-            segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
+            # Sauvegarder les sélections
+            settings = QSettings()
+            settings.setValue("network_manager/segments_layer_id", segments_id)
+            settings.setValue("network_manager/compositions_layer_id", compositions_id)
 
-        log_debug(f"Couches récupérées:")
-        log_debug(f"- Segments: {self.selected_segments_layer.name() if self.selected_segments_layer else 'None'}")
-        log_debug(f"- Compositions: {self.selected_compositions_layer.name() if self.selected_compositions_layer else 'None'}")
+    def on_column_selected(self):
+        """Méthode appelée quand une colonne est sélectionnée"""
+        if self.segments_column_combo.currentText():
+            settings = QSettings()
+            settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
 
-        # Sauvegarder les sélections
-        settings = QSettings()
-        settings.setValue("network_manager/segments_layer_id", segments_id)
-        settings.setValue("network_manager/compositions_layer_id", compositions_id)
-        settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
-
-        log_debug("Settings sauvegardés")
+            if hasattr(self, 'selected_compositions_layer') and self.selected_compositions_layer:
+                global segments_field_index
+                segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
 
     def load_settings(self):
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
+        saved_column = settings.value("network_manager/segments_column_name", "segments")
 
         log_debug(f"Chargement des settings:")
         log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
@@ -422,6 +450,10 @@ class NetworkManagerDialog(QDialog):
         if compositions_index >= 0:
             self.compositions_combo.setCurrentIndex(compositions_index)
             log_debug(f"Index compositions défini: {compositions_index}")
+        if hasattr(self, 'segments_column_combo'):
+            index = self.segments_column_combo.findText(saved_column)
+            if index >= 0:
+                self.segments_column_combo.setCurrentIndex(index)
 
     def save_settings(self):
         settings = QSettings()
