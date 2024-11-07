@@ -28,10 +28,11 @@ from qgis.PyQt.QtCore import (
     Qt,
     QTimer,
     QSettings,
-    QCoreApplication
+    QCoreApplication,
+    QTranslator
 )
 from typing import Literal, Optional, cast
-from .utils import get_features_list, tr
+from .utils import get_features_list
 from .functions import (
     get_compositions_list_segments,
     update_compositions_segments,
@@ -152,7 +153,7 @@ def start_script():
         # Vérifier le champ id de la couche segments
         id_field_index = segments_layer.fields().indexOf('id')
         if id_field_index == -1:
-            raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
+            raise Exception(QCoreApplication.translate("NetworkManager","Le champ 'id' n'a pas été trouvé dans la couche segments"))
 
         config.set_id_field_index(id_field_index)
 
@@ -161,11 +162,11 @@ def start_script():
 
         segments_layer.featureAdded.connect(feature_added)
         segments_layer.featuresDeleted.connect(features_deleted)
-        iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager a démarré", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", QCoreApplication.translate("NetworkManager","Le suivi par NetworkManager a démarré"), level=Qgis.Info)
         return True
 
     except Exception as e:
-        iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage(QCoreApplication.translate("NetworkManager","Erreur"), str(e), level=Qgis.Critical)
         return False
 
 def stop_script():
@@ -175,7 +176,8 @@ def stop_script():
     segments_layer.featureAdded.disconnect(feature_added)
     segments_layer.featuresDeleted.disconnect(features_deleted)
 
-    iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager est arrêté", level=Qgis.MessageLevel.Info)
+    iface.messageBar().pushMessage("Info", QCoreApplication.translate("NetworkManager","Le suivi par NetworkManager est arrêté"), level=Qgis.MessageLevel.Info)
+
 
 def show_dialog():
     dialog = NetworkManagerDialog(iface.mainWindow())
