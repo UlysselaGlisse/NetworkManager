@@ -41,7 +41,6 @@ from . import config
 
 segments_layer = None
 compositions_layer = None
-last_fid = 0
 
 def feature_added(fid):
     # Empêche Qgis de planter. Sûrement une histoire de priorité de tâche. J'ai trouvé ça pour y parer.'
@@ -51,7 +50,9 @@ def process_new_feature(fid):
     """Traite l'ajout d'une nouvelle entité dans la couche segments"""
     global last_fid, list_field_name, list_field_index, id_field_index
 
-    if last_fid == fid:
+    # Solution hideuse trouvé pour éviter que ce relance le processus lors de l'enregistrement des couches.
+    # Essayé before/afterCommitChanges, mais les signaux sont mal coordonnées et je n'ai rien pu en tirer.
+    if fid >= 0:
         return
 
     # Initialisation
@@ -98,9 +99,6 @@ def process_new_feature(fid):
                         pass
                 else:
                     update_compositions_segments(segments_layer, compositions_layer, list_field_name, list_field_index, segment_id, next_id, original_feature, source_feature, segment_lists)
-
-    clean_invalid_segments(segments_layer, compositions_layer, list_field_name, list_field_index)
-    last_fid = fid
 
 def features_deleted(fids):
     """Nettoie les compositions des segments supprimés"""
@@ -174,7 +172,7 @@ def stop_script():
     try:
         if segments_layer:
             segments_layer.featureAdded.disconnect(feature_added)
-            segments_layer.featuresDeleted.disconnect(feature_deleted)
+            segments_layer.featuresDeleted.disconnect(features_deleted)
         segments_layer = None
         compositions_layer = None
     except:
