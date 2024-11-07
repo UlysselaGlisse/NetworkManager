@@ -54,13 +54,19 @@ def process_new_feature(fid):
     Traite une nouvelle feature ajoutée
     """
 
-    global last_fid
+    global last_fid, segments_field_name, segments_field_index, id_field_index
+
+    segments_field_name = config.get_segments_field_name()
+    segments_field_index = config.get_segments_field_index()
+    id_field_index = config.get_id_field_index()
+
     if last_fid == fid:
         return
 
     print(f"\n{'='*50}")
     print(f"Traitement nouvelle entité FID={fid}")
     print(f"{'='*50}")
+    log_debug(f"Nom du champ segments: '{segments_field_name}'")
 
     source_feature = segments_layer.getFeature(fid)
     if not source_feature.isValid():
@@ -71,24 +77,11 @@ def process_new_feature(fid):
         print("ERREUR: Pas de champs dans la feature source")
         return
 
-    attributes = source_feature.attributes()
-    print(f"Attributs de la feature: {attributes}")
-    print(f"Nombre d'attributs: {len(attributes)}")
-    field_names = [field.name() for field in segments_layer.fields()]
-    print(f"Noms des champs de la couche segments: {field_names}")
+    segment_id = source_feature.attributes()[id_field_index]
 
-    segments_field_index = config.get_segments_field_index()
-    print(segments_field_index)
+    print(f"Id du segment: {segment_id}")
 
-    if len(attributes) <= segments_field_index:
-        print(f"ERREUR: segments_field_index ({segments_field_index}) est hors limites pour le nombre d'attributs ({len(attributes)})")
-        return
-
-    segment_id = source_feature.attributes()[segments_field_index]
-
-    print(f"ID du segment: {segment_id}")
-
-    if segment_id and has_duplicate_segment_id(segments_layer,segment_id):
+    if segment_id and has_duplicate_segment_id(segments_layer, segment_id):
         #print(f"Segment {segment_id} détecté comme dupliqué")
 
         new_geometry = source_feature.geometry()
@@ -109,15 +102,15 @@ def process_new_feature(fid):
             # print_geometry_info(new_geometry, "Nouveau segment")
 
             # Récupérer toutes les compositions contenant ce segment
-            segment_lists = get_compositions_list_segments(segment_id, compositions_layer)
+            segment_lists = get_compositions_list_segments(segment_id, compositions_layer, segments_field_name)
             #print(f"Nombre de compositions trouvées: {len(segment_lists)}")
 
             if segment_lists:
                 #print(segment_lists)
-                next_id = get_next_id(segments_layer)
+                next_id = get_next_id(segments_layer, id_field_index)
                 #print(f"Nouvel ID à attribuer: {next_id}")
 
-                update_segment_id(segments_layer, fid, next_id)
+                update_segment_id(segments_layer, fid, next_id, id_field_index)
                 segment_unique = None
 
                 for segments_list in segment_lists:
@@ -126,11 +119,11 @@ def process_new_feature(fid):
 
                 if segment_unique == True:
                     #log_debug("Composition à segment unique détectée - Traitement spécial")
-                    new_segments = process_single_segment_composition(segments_layer, compositions_layer, fid, segment_id, next_id, segments_list)
+                    new_segments = process_single_segment_composition(segments_layer, compositions_layer, segments_field_name, segments_field_index, fid, segment_id, next_id, segments_list)
                     if new_segments is None:
                         pass
                 else:
-                    update_compositions_segments(segments_layer, compositions_layer, segment_id, next_id, original_feature, source_feature, segment_lists)
+                    update_compositions_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index, segment_id, next_id, original_feature, source_feature, segment_lists)
 
             else:
                 print("ATTENTION: Aucune composition trouvée pour ce segment")
@@ -140,13 +133,17 @@ def process_new_feature(fid):
         print("Le segment n'est pas un doublon ou n'a pas d'id valide")
 
     last_fid = fid
-    clean_invalid_segments(segments_layer, compositions_layer)
+    clean_invalid_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index)
 
 def features_deleted(fids):
     """
     Nettoie les compositions des segments supprimés
     """
-    clean_invalid_segments(segments_layer, compositions_layer)
+    global segments_field_name, segments_field_index
+    segments_field_name = config.get_segments_field_name()
+    segemnts_field_index = config.get_segments_field_index()
+
+    clean_invalid_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index)
 #@timer_decorator
 @staticmethod
 def start_script():
@@ -187,39 +184,34 @@ def start_script():
         if not isinstance(compositions_layer, QgsVectorLayer):
             raise Exception("La couche de compositions n'est pas une couche vectorielle valide")
 
-        log_debug(f"Segments Column Name: {segments_column_name}")
-
-        if not isinstance(compositions_layer, QgsVectorLayer):
-            raise Exception("La couche compositions n'est pas une couche vectorielle")
-
-        fields = compositions_layer.fields()
-        field_count = fields.count()
-
-        # Récupération du nom de la colonne segments
-        segments_column_name = settings.value("network_manager/segments_column_name", "segments")
+        # Mise à jour de config
+        config.set_segments_field_name(segments_column_name)
+        log_debug(f"Nom de la colonne segments dans config: '{config.segments_field_name}'")
 
         # Vérification de l'existence du champ
-        field_index = fields.indexOf(segments_column_name)
-        if field_index == -1:
+        segments_field_index = compositions_layer.fields().indexOf(segments_column_name)
+        if segments_field_index == -1:
             raise Exception(f"Le champ '{segments_column_name}' n'existe pas dans la couche compositions")
 
-        # Afficher des informations de debug
-        log_debug(f"Nombre total de champs: {field_count}")
-        log_debug(f"Index du champ '{segments_column_name}': {field_index}")
+        log_debug(f"Index du champ '{segments_column_name}': {segments_field_index}")
 
         # Mise à jour de l'index
-        segments_field_index = field_index
         config.set_segments_field_index(segments_field_index)
 
-        print(f"Valeur de segments_field_index dans config.py {config.segments_field_index}")
+        log_debug(f"Index du champ segments dans config.py '{config.segments_field_index}'")
 
-        log_debug(f"segments_field_index mis à jour: {segments_field_index}")
-
-        # Vérifier les champs requis
+        # Vérifier le champ id
         id_field_index = segments_layer.fields().indexOf('id')
-
         if id_field_index == -1:
             raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
+
+        log_debug(f"Index du champ id '{id_field_index}'")
+
+        config.set_id_field_index(id_field_index)
+
+        log_debug(f"Index du champ id dans config.py '{config.id_field_index}'")
+
+
         if segments_field_index == -1:
             raise Exception(f"Le champ '{segments_column_name}' n'a pas été trouvé dans la couche compositions")
 
@@ -461,6 +453,9 @@ class NetworkManagerDialog(QDialog):
         """Méthode appelée quand une colonne est sélectionnée"""
         if self.segments_column_combo.currentText():
             selected_column = self.segments_column_combo.currentText()
+            log_debug(f"Nom de la colonne sélectionnée: '{selected_column}'")
+            config.set_segments_field_name(selected_column)
+            log_debug(f"Nom de la colonne sélectionnée dans config: '{config.get_segments_field_name()}'")
             settings = QSettings()
             settings.setValue("network_manager/segments_column_name", selected_column)
 
