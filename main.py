@@ -37,9 +37,8 @@ from .functions import (
     process_single_segment_composition
 
 )
-from .config import segments_field_index
+from . import config
 
-segments_column_name = "segments"
 segments_layer = None
 compositions_layer = None
 last_fid = 0
@@ -54,24 +53,40 @@ def process_new_feature(fid):
     """
     Traite une nouvelle feature ajoutée
     """
-    global last_fid
 
+    global last_fid
     if last_fid == fid:
         return
 
-    #print(f"\n{'='*50}")
-    #print(f"Traitement nouvelle entité FID={fid}")
-    #print(f"{'='*50}")
+    print(f"\n{'='*50}")
+    print(f"Traitement nouvelle entité FID={fid}")
+    print(f"{'='*50}")
 
     source_feature = segments_layer.getFeature(fid)
+    if not source_feature.isValid():
+          print("ERREUR: La feature source n'est pas valide")
+          return
+
     if not source_feature.fields().names():
-        #print("ERREUR: Pas de champs dans la feature source")
+        print("ERREUR: Pas de champs dans la feature source")
         return
 
-    id_idx = source_feature.fields().indexOf('id')
-    segment_id = source_feature.attributes()[id_idx]
+    attributes = source_feature.attributes()
+    print(f"Attributs de la feature: {attributes}")
+    print(f"Nombre d'attributs: {len(attributes)}")
+    field_names = [field.name() for field in segments_layer.fields()]
+    print(f"Noms des champs de la couche segments: {field_names}")
 
-    # print(f"ID du segment: {segment_id}")
+    segments_field_index = config.get_segments_field_index()
+    print(segments_field_index)
+
+    if len(attributes) <= segments_field_index:
+        print(f"ERREUR: segments_field_index ({segments_field_index}) est hors limites pour le nombre d'attributs ({len(attributes)})")
+        return
+
+    segment_id = source_feature.attributes()[segments_field_index]
+
+    print(f"ID du segment: {segment_id}")
 
     if segment_id and has_duplicate_segment_id(segments_layer,segment_id):
         #print(f"Segment {segment_id} détecté comme dupliqué")
@@ -132,11 +147,10 @@ def features_deleted(fids):
     Nettoie les compositions des segments supprimés
     """
     clean_invalid_segments(segments_layer, compositions_layer)
-
 #@timer_decorator
 @staticmethod
 def start_script():
-    global segments_layer, compositions_layer, id_field_index, segments_field_index, segments_column_name
+    global segments_layer, compositions_layer, id_field_index
     try:
         settings = QSettings()
         segments_layer_id = settings.value("network_manager/segments_layer_id", "")
@@ -174,9 +188,35 @@ def start_script():
             raise Exception("La couche de compositions n'est pas une couche vectorielle valide")
 
         log_debug(f"Segments Column Name: {segments_column_name}")
+
+        if not isinstance(compositions_layer, QgsVectorLayer):
+            raise Exception("La couche compositions n'est pas une couche vectorielle")
+
+        fields = compositions_layer.fields()
+        field_count = fields.count()
+
+        # Récupération du nom de la colonne segments
+        segments_column_name = settings.value("network_manager/segments_column_name", "segments")
+
+        # Vérification de l'existence du champ
+        field_index = fields.indexOf(segments_column_name)
+        if field_index == -1:
+            raise Exception(f"Le champ '{segments_column_name}' n'existe pas dans la couche compositions")
+
+        # Afficher des informations de debug
+        log_debug(f"Nombre total de champs: {field_count}")
+        log_debug(f"Index du champ '{segments_column_name}': {field_index}")
+
+        # Mise à jour de l'index
+        segments_field_index = field_index
+        config.set_segments_field_index(segments_field_index)
+
+        print(f"Valeur de segments_field_index dans config.py {config.segments_field_index}")
+
+        log_debug(f"segments_field_index mis à jour: {segments_field_index}")
+
         # Vérifier les champs requis
         id_field_index = segments_layer.fields().indexOf('id')
-        segments_field_index = compositions_layer.fields().indexOf(segments_column_name)
 
         if id_field_index == -1:
             raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
@@ -420,12 +460,20 @@ class NetworkManagerDialog(QDialog):
     def on_column_selected(self):
         """Méthode appelée quand une colonne est sélectionnée"""
         if self.segments_column_combo.currentText():
+            selected_column = self.segments_column_combo.currentText()
             settings = QSettings()
-            settings.setValue("network_manager/segments_column_name", self.segments_column_combo.currentText())
+            settings.setValue("network_manager/segments_column_name", selected_column)
 
-            if hasattr(self, 'selected_compositions_layer') and self.selected_compositions_layer:
-                global segments_field_index
-                segments_field_index = self.selected_compositions_layer.fields().indexOf(self.segments_column_combo.currentText())
+            if isinstance(self.selected_compositions_layer, QgsVectorLayer):
+                fields = self.selected_compositions_layer.fields()
+                field_index = fields.indexOf(selected_column)
+
+                if field_index != -1:
+                    segments_field_index = field_index
+                    config.set_segments_field_index(segments_field_index)
+                    log_debug(f"Nouvel index pour le champ segments : {segments_field_index}")
+                else:
+                    log_debug(f"ERREUR: Champ {selected_column} non trouvé")
 
     def load_settings(self):
         settings = QSettings()
