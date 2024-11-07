@@ -27,15 +27,11 @@ from .utils import get_features_list, timer_decorator
 from . import config
 
 def get_compositions_list_segments(segment_id, compositions_layer, segments_field_name):
-    """
-    Récupère toutes les listes de segments contenant l'id du segment divisé
-    """
+    """Récupère toutes les listes de segments contenant l'id du segment divisé"""
     if not segment_id:
         return []
 
     all_segments_lists = []
-
-    #print(f"\nRecherche du segment {segment_id} dans les compositions")
 
     request = QgsFeatureRequest()
     expression = f"{segments_field_name} LIKE '%,{segment_id},%' OR {segments_field_name} LIKE '{segment_id},%' OR {segments_field_name} LIKE '%,{segment_id}' OR {segments_field_name} = '{segment_id}'"
@@ -43,23 +39,16 @@ def get_compositions_list_segments(segment_id, compositions_layer, segments_fiel
 
     features = get_features_list(compositions_layer, request)
 
-    #print(f"Nombre de compositions trouvées avec la requête: {len(features)}")
-
     for feature in features:
         segments_str = feature[segments_field_name]
-        #print(f"\nExamen de la composition {feature.id()}:")
-        #print(f"Liste brute: {segments_str}")
 
         if not segments_str:
-            #print("Liste vide, ignorée")
             continue
 
         try:
             segments_ids = [int(id.strip()) for id in str(segments_str).split(',')]
-            #print(f"Liste convertie: {segments_ids}")
 
             if int(segment_id) in segments_ids:
-                #print(f"Segment {segment_id} trouvé dans la composition {feature.id()}")
                 all_segments_lists.append(segments_ids)
             else:
                 print(f"Segment {segment_id} non trouvé dans cette liste")
@@ -67,18 +56,10 @@ def get_compositions_list_segments(segment_id, compositions_layer, segments_fiel
         except Exception as e:
             print(f"Erreur lors du traitement de la composition {feature.id()}: {str(e)}")
 
-    #print(f"\nNombre total de listes trouvées: {len(all_segments_lists)}")
     return all_segments_lists
 
-@timer_decorator
 def update_compositions_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index, old_id, new_id, original_feature, new_feature, segment_lists):
-    """
-    Met à jour les compositions après division d'un segment
-    """
-    #print(f"\nMise à jour des compositions:")
-    #print(f"- Ancien ID: {old_id}")
-    #print(f"- Nouvel ID: {new_id}")
-
+    """ Met à jour les compositions après division d'un segment"""
     compositions_layer.startEditing()
 
     original_geom = original_feature.geometry()
@@ -87,10 +68,8 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
     compositions_dict = {feature[segments_field_name]: feature.id() for feature in compositions_layer.getFeatures()}
 
     for segments_list in segment_lists:
-        #print(f"\nTraitement liste: {segments_list}")
         try:
             old_index = segments_list.index(int(old_id))
-            #print(f"Position du segment dans la liste: {old_index}")
 
             # Vérifier l'orientation
             prev_geom = segments_layer.getFeature(segments_list[old_index - 1]).geometry() if old_index > 0 else None
@@ -101,7 +80,6 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
                 prev_geom,
                 next_geom
             )
-            #print(f"Orientation correcte: {is_correctly_oriented}")
 
             new_segments_list = segments_list.copy()
 
@@ -109,8 +87,6 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
                 new_segments_list[old_index:old_index+1] = [int(old_id), int(new_id)]
             else:
                 new_segments_list[old_index:old_index+1] = [int(new_id), int(old_id)]
-
-            #print(f"Nouvelle liste: {new_segments_list}")
 
             # Mettre à jour la composition
             composition_id = compositions_dict.get(','.join(map(str, segments_list)))
@@ -120,17 +96,12 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
                     segments_field_index,
                     ','.join(map(str, new_segments_list))
                 )
-                #print(f"Mise à jour réussie: {result}")
-            else:
-                print("ERREUR: Composition non trouvée")
 
         except Exception as e:
             print(f"ERREUR lors de la mise à jour: {str(e)}")
 
 def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment_geom=None):
-    """
-    Vérifie si un segment est orienté correctement par rapport aux segments adjacents.
-    """
+    """Vérifie si un segment est orienté correctement par rapport aux segments adjacents"""
     if segment_geom.isEmpty():
         return True
 
@@ -151,14 +122,7 @@ def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment
     return True
 
 def process_single_segment_composition(segments_layer, compositions_layer, segments_field_name, segments_field_index, fid, old_id, new_id, segments_list):
-    """Gère le cas d'une composition à segment unique """
-
-    #log_debug(f"\nDémarrage process_single_segment_composition:")
-    #log_debug(f"- FID: {fid}")
-    #log_debug(f"- Ancien ID: {old_id}")
-    #log_debug(f"- Nouvel ID: {new_id}")
-    #log_debug(f"- Liste segments: {segments_list}")
-
+    """Gère le cas d'une composition d'un seul segment"""
 
     class SingleSegmentDialog(QDialog):
         def __init__(self, parent=None):
@@ -166,7 +130,6 @@ def process_single_segment_composition(segments_layer, compositions_layer, segme
             self.setWindowTitle("Vérification nécessaire")
             self.setMinimumWidth(400)
             self.current_segments = [old_id, new_id]
-            #log_debug(f"Initialisation dialog avec segments: {self.current_segments}")
             self.setup_ui()
 
         def setup_ui(self):
@@ -202,73 +165,49 @@ def process_single_segment_composition(segments_layer, compositions_layer, segme
             self.setLayout(layout)
 
         def update_proposal_label(self):
-            #log_debug(f"Mise à jour label avec segments: {self.current_segments}")
             self.proposal_label.setText(f"Nouvelle composition proposée: {self.current_segments}")
 
         def invert_order(self):
-            #log_debug(f"Inversion de l'ordre des segments")
-            #log_debug(f"Avant inversion: {self.current_segments}")
             self.current_segments.reverse()
             self.update_proposal_label()
-            #log_debug(f"Après inversion: {self.current_segments}")
             self.update_proposal_label()
 
     dialog = SingleSegmentDialog()
     result = dialog.exec_()
 
     if result == QDialog.Accepted:
-        #log_debug("Dialog accepté")
         # Rechercher la composition qui contient ce segment
         expression = f"{segments_field_name} = '{old_id}'"
-        #log_debug(f"Recherche composition avec expression: {expression}")
         request = QgsFeatureRequest().setFilterExpression(expression)
         composition_feature = next(compositions_layer.getFeatures(request), None)
 
         if composition_feature:
-            #log_debug(f"Composition trouvée: ID={composition_feature.id()}")
-            #log_debug(f"Ancienne valeur segments: {composition_feature['segments']}")
-
             try:
                 new_segments_str = ','.join(map(str, dialog.current_segments))
-                #log_debug(f"Nouvelle valeur segments à appliquer: {new_segments_str}")
-
                 compositions_layer.startEditing()
-                #log_debug(f"Index du champ segments: {segments_field_idx}")
-
                 success = compositions_layer.changeAttributeValue(
                     composition_feature.id(),
                     segments_field_index,
                     new_segments_str
                 )
-
-                #log_debug(f"Résultat de la mise à jour: {'Succès' if success else 'Échec'}")
-
             except Exception as e:
-                #log_debug(f"ERREUR lors de la mise à jour: {str(e)}")
                 iface.messageBar().pushMessage(
                     "Erreur",
                     f"Erreur lors de la mise à jour de la composition: {str(e)}",
                     level=Qgis.MessageLevel.Critical
                 )
         else:
-            #log_debug(f"Aucune composition trouvée avec le segment {old_id}")
             iface.messageBar().pushMessage(
                 "Attention",
                 f"Aucune composition trouvée avec le segment {old_id}",
                 level=Qgis.MessageLevel.Warning
             )
-
-        #log_debug(f"Retour des segments: {dialog.current_segments}")
         return dialog.current_segments
     else:
-        #log_debug("Dialog annulé")
         return None
 
-#@timer_decorator
 def clean_invalid_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index) -> None:
-    """
-    Supprime les références aux segments qui n'existent plus dans la table segments
-    """
+    """Supprime les références aux segments qui n'existent plus dans la table segments"""
     valid_segments_ids = {str(f['id']) for f in get_features_list(segments_layer) if f['id'] is not None}
     compositions = get_features_list(compositions_layer)
 
@@ -289,12 +228,8 @@ def clean_invalid_segments(segments_layer, compositions_layer, segments_field_na
                 new_segments_str
             )
 
-#@timer_decorator
 def has_duplicate_segment_id(segments_layer, segment_id) -> bool:
-    """
-    Vérifie si un id de segments existe plusieurs fois. Si oui, il s'agit d'un segment divisé.
-    Args:
-    """
+    """Vérifie si un id de segments existe plusieurs fois. Si oui, il s'agit d'un segment divisé."""
 
     expression = f"\"id\" = '{segment_id}'"
     request = QgsFeatureRequest().setFilterExpression(expression)
@@ -303,18 +238,13 @@ def has_duplicate_segment_id(segments_layer, segment_id) -> bool:
     features = get_features_list(segments_layer, request)
     return len(features) > 1
 
-#@timer_decorator
 def update_segment_id(segments_layer, fid, next_id, id_field_index):
-    """
-    Met à jour l'id des segments divisés.
-    """
+    """Met à jour l'id des segments divisés."""
     segments_layer.startEditing()
     segments_layer.changeAttributeValue(fid,
         id_field_index,
         str(next_id))
 
-#@timer_decorator
 def get_next_id(segments_layer, id_field_index):
-
     next_id = int(segments_layer.maximumValue(id_field_index))
     return next_id + 1

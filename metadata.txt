@@ -1,6 +1,6 @@
 [general]
 name=NetworkManager
-description=Outil de gestion de réseau
+description=Outil de gestion de réseaux de vecteurs.
 version=0.1
 qgisMinimumVersion=3.0
 author=Ulysse Descamps

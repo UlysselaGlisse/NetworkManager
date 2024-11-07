@@ -43,50 +43,34 @@ segments_layer = None
 compositions_layer = None
 last_fid = 0
 
-#@timer_decorator
 def feature_added(fid):
-
     # Empêche Qgis de planter. Sûrement une histoire de priorité de tâche. J'ai trouvé ça pour y parer.'
     QTimer.singleShot(1, lambda: process_new_feature(fid))
-#@timer_decorator
+
 def process_new_feature(fid):
-    """
-    Traite une nouvelle feature ajoutée
-    """
-
+    """Traite l'ajout d'une nouvelle entité dans la couche segments"""
     global last_fid, list_field_name, list_field_index, id_field_index
-
-    list_field_name = config.get_list_field_name()
-    list_field_index = config.get_list_field_index()
-    id_field_index = config.get_id_field_index()
 
     if last_fid == fid:
         return
 
-    print(f"\n{'='*50}")
-    print(f"Traitement nouvelle entité FID={fid}")
-    print(f"{'='*50}")
-    log_debug(f"Nom du champ segments: '{list_field_name}'")
+    # Initialisation
+    list_field_name = config.get_list_field_name()
+    list_field_index = config.get_list_field_index()
+    id_field_index = config.get_id_field_index()
 
     source_feature = segments_layer.getFeature(fid)
-    if not source_feature.isValid():
-          print("ERREUR: La feature source n'est pas valide")
+    if not source_feature.isValid() and source_feature.fields().names():
           return
-
-    if not source_feature.fields().names():
-        print("ERREUR: Pas de champs dans la feature source")
-        return
 
     segment_id = source_feature.attributes()[id_field_index]
 
-    print(f"Id du segment: {segment_id}")
+    # Début du traitement
 
+    # Le segment a-t-il était divisé ?
     if segment_id and has_duplicate_segment_id(segments_layer, segment_id):
-        #print(f"Segment {segment_id} détecté comme dupliqué")
-
         new_geometry = source_feature.geometry()
         if not new_geometry or new_geometry.isEmpty():
-            #print("ERREUR: Géométrie invalide pour le nouveau segment")
             return
 
         # Récupérer le segment original
@@ -95,20 +79,11 @@ def process_new_feature(fid):
         original_feature = next(segments_layer.getFeatures(request), None)
 
         if original_feature:
-            #print(f"Segment original trouvé: FID={original_feature.id()}")
-
-            # Vérifier les géométries
-            # print_geometry_info(original_feature.geometry(), "Segment original")
-            # print_geometry_info(new_geometry, "Nouveau segment")
-
             # Récupérer toutes les compositions contenant ce segment
             segment_lists = get_compositions_list_segments(segment_id, compositions_layer, list_field_name)
-            #print(f"Nombre de compositions trouvées: {len(segment_lists)}")
 
             if segment_lists:
-                #print(segment_lists)
                 next_id = get_next_id(segments_layer, id_field_index)
-                #print(f"Nouvel ID à attribuer: {next_id}")
 
                 update_segment_id(segments_layer, fid, next_id, id_field_index)
                 segment_unique = None
@@ -118,33 +93,23 @@ def process_new_feature(fid):
                         segment_unique = True
 
                 if segment_unique == True:
-                    #log_debug("Composition à segment unique détectée - Traitement spécial")
                     new_segments = process_single_segment_composition(segments_layer, compositions_layer, list_field_name, list_field_index, fid, segment_id, next_id, segments_list)
                     if new_segments is None:
                         pass
                 else:
                     update_compositions_segments(segments_layer, compositions_layer, list_field_name, list_field_index, segment_id, next_id, original_feature, source_feature, segment_lists)
 
-            else:
-                print("ATTENTION: Aucune composition trouvée pour ce segment")
-        else:
-            print("ERREUR: Segment original non trouvé")
-    else:
-        print("Le segment n'est pas un doublon ou n'a pas d'id valide")
-
-    last_fid = fid
     clean_invalid_segments(segments_layer, compositions_layer, list_field_name, list_field_index)
+    last_fid = fid
 
 def features_deleted(fids):
-    """
-    Nettoie les compositions des segments supprimés
-    """
+    """Nettoie les compositions des segments supprimés"""
     global list_field_name, list_field_index
     list_field_name = config.get_list_field_name()
     segemnts_field_index = config.get_list_field_index()
 
     clean_invalid_segments(segments_layer, compositions_layer, list_field_name, list_field_index)
-#@timer_decorator
+
 @staticmethod
 def start_script():
     global segments_layer, compositions_layer, id_field_index
@@ -154,28 +119,16 @@ def start_script():
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
         segments_column_name = settings.value("network_manager/segments_column_name", "segments")
 
-        log_debug(f"Démarrage du script avec:")
-        log_debug(f"- ID segments: {segments_layer_id}")
-        log_debug(f"- ID compositions: {compositions_layer_id}")
-        log_debug(f"- Nom de la colonne segments: {segments_column_name}")
-
         project = QgsProject.instance()
         if not project:
-            log_debug("Pas de projet QGIS ouvert")
             raise Exception("Aucun projet QGIS n'est ouvert")
 
         segments_layer = project.mapLayer(segments_layer_id)
         compositions_layer = project.mapLayer(compositions_layer_id)
 
-        log_debug(f"Couches récupérées:")
-        log_debug(f"- Segments: {segments_layer.name() if segments_layer else 'None'}")
-        log_debug(f"- Compositions: {compositions_layer.name() if compositions_layer else 'None'}")
-
         if not segments_layer:
-            log_debug("Couche segments non trouvée")
             raise Exception("Veuillez sélectionner une couche de segments valide")
         if not compositions_layer:
-            log_debug("Couche compositions non trouvée")
             raise Exception("Veuillez sélectionner une couche de compositions valide")
 
         # Vérifier que ce sont des couches vectorielles
@@ -186,31 +139,21 @@ def start_script():
 
         # Mise à jour de config
         config.set_list_field_name(segments_column_name)
-        log_debug(f"Nom de la colonne segments dans config: '{config.list_field_name}'")
 
-        # Vérification de l'existence du champ
+        # Vérification de l'existence du champ des listes de segments de la couche compositions
         list_field_index = compositions_layer.fields().indexOf(segments_column_name)
         if list_field_index == -1:
             raise Exception(f"Le champ '{segments_column_name}' n'existe pas dans la couche compositions")
 
-        log_debug(f"Index du champ '{segments_column_name}': {list_field_index}")
-
         # Mise à jour de l'index
         config.set_list_field_index(list_field_index)
 
-        log_debug(f"Index du champ segments dans config.py '{config.list_field_index}'")
-
-        # Vérifier le champ id
+        # Vérifier le champ id de la couche segments
         id_field_index = segments_layer.fields().indexOf('id')
         if id_field_index == -1:
             raise Exception("Le champ 'id' n'a pas été trouvé dans la couche segments")
 
-        log_debug(f"Index du champ id '{id_field_index}'")
-
         config.set_id_field_index(id_field_index)
-
-        log_debug(f"Index du champ id dans config.py '{config.id_field_index}'")
-
 
         if list_field_index == -1:
             raise Exception(f"Le champ '{segments_column_name}' n'a pas été trouvé dans la couche compositions")
@@ -221,11 +164,11 @@ def start_script():
         return True
 
     except Exception as e:
-        log_debug(f"Erreur lors du démarrage: {str(e)}")
         iface.messageBar().pushMessage("Erreur", str(e), level=Qgis.Critical)
         return False
 
 def stop_script():
+    """Arrête l'exécution du script"""
     global segments_layer, compositions_layer
 
     try:
@@ -406,13 +349,10 @@ class NetworkManagerDialog(QDialog):
 
     def populate_layers_combo(self, combo):
         combo.clear()
-        log_debug(f"Remplissage du combo {combo.objectName()}")
-
         # Récupérer toutes les couches du projet
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer):
                 combo.addItem(layer.name(), layer.id())
-                log_debug(f"Ajout couche: {layer.name()} (ID: {layer.id()})")
 
     def populate_field_combo(self):
         if not hasattr(self, 'segments_column_combo'):
@@ -453,9 +393,7 @@ class NetworkManagerDialog(QDialog):
         """Méthode appelée quand une colonne est sélectionnée"""
         if self.segments_column_combo.currentText():
             selected_column = self.segments_column_combo.currentText()
-            log_debug(f"Nom de la colonne sélectionnée: '{selected_column}'")
             config.set_list_field_name(selected_column)
-            log_debug(f"Nom de la colonne sélectionnée dans config: '{config.get_list_field_name()}'")
             settings = QSettings()
             settings.setValue("network_manager/segments_column_name", selected_column)
 
@@ -466,9 +404,6 @@ class NetworkManagerDialog(QDialog):
                 if field_index != -1:
                     list_field_index = field_index
                     config.set_list_field_index(list_field_index)
-                    log_debug(f"Nouvel index pour le champ segments : {list_field_index}")
-                else:
-                    log_debug(f"ERREUR: Champ {selected_column} non trouvé")
 
     def load_settings(self):
         settings = QSettings()
@@ -476,23 +411,13 @@ class NetworkManagerDialog(QDialog):
         compositions_layer_id = settings.value("network_manager/compositions_layer_id", "")
         saved_column = settings.value("network_manager/segments_column_name", "segments")
 
-        log_debug(f"Chargement des settings:")
-        log_debug(f"- ID segments sauvegardé: {segments_layer_id}")
-        log_debug(f"- ID compositions sauvegardé: {compositions_layer_id}")
-
         segments_index = self.segments_combo.findData(segments_layer_id)
         compositions_index = self.compositions_combo.findData(compositions_layer_id)
 
-        log_debug(f"Index trouvés:")
-        log_debug(f"- Index segments: {segments_index}")
-        log_debug(f"- Index compositions: {compositions_index}")
-
         if segments_index >= 0:
             self.segments_combo.setCurrentIndex(segments_index)
-            log_debug(f"Index segments défini: {segments_index}")
         if compositions_index >= 0:
             self.compositions_combo.setCurrentIndex(compositions_index)
-            log_debug(f"Index compositions défini: {compositions_index}")
         if hasattr(self, 'segments_column_combo'):
             index = self.segments_column_combo.findText(saved_column)
             if index >= 0:
@@ -558,7 +483,3 @@ class NetworkManagerDialog(QDialog):
         project.writeEntry("network_manager", "auto_start", bool(state))
         # Marquer le projet comme modifié pour s'assurer que le changement est sauvegardé
         project.setDirty(True)
-
-def log_debug(message):
-    """Fonction utilitaire pour le logging"""
-    print(f"[DEBUG] {message}")
