@@ -9,6 +9,10 @@ from qgis.core import (
     QgsWkbTypes,
     QgsSpatialIndex
 )
+from qgis.PyQt.QtCore import (
+    QTranslator,
+    QCoreApplication
+)
 
 def timer_decorator(func):
     @wraps(func)
@@ -48,3 +52,6 @@ def print_geometry_info(geometry, label):
     - Premier point: {points[0]}
     - Dernier point: {points[-1]}
     """)
+
+def tr(message):
+    return QCoreApplication.translate('NetworkManager', message)

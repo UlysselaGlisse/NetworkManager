@@ -2,6 +2,13 @@ from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QTimer, QSettings
 from qgis.core import QgsApplication, QgsProject
+from qgis.PyQt.QtCore import (
+    Qt,
+    QTimer,
+    QSettings,
+    QCoreApplication,
+    QTranslator
+)
 import os.path
 from .main import show_dialog, start_script, stop_script
 
@@ -14,6 +21,8 @@ class NetworkManagerTool:
         self.toolbar = self.iface.addToolBar('Network Manager')
         self.toolbar.setObjectName('NetworkManagerToolbar')
         self.project_loaded = False
+        self.iface = iface
+        self.plugin_dir = os.path.dirname(__file__)
         QgsProject.instance().readProject.connect(self.on_project_load)
 
     def initGui(self):
@@ -27,6 +36,16 @@ class NetworkManagerTool:
         show_action.triggered.connect(self.show_dialog)
         self.toolbar.addAction(show_action)
         self.actions.append(show_action)
+        locale = QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(
+            self.plugin_dir,
+            'i18n',
+            'NetworkManager_{}.qm'.format(locale))
+
+        if os.path.exists(locale_path):
+            self.translator = QTranslator()
+            self.translator.load(locale_path)
+            QCoreApplication.installTranslator(self.translator)
 
     def on_project_load(self):
         """Fonction appelée quand un projet est chargé"""
