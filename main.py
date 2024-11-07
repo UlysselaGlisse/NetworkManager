@@ -39,21 +39,19 @@ from .functions import (
 )
 from . import config
 
-segments_layer = None
-compositions_layer = None
+segments_layer: QgsVectorLayer
+compositions_layer: QgsVectorLayer
 
 def feature_added(fid):
+    # Lorsque Qgis enregistre les couches: fid >= 0, comme le script ne doit pas s'exécuter à ce moment, on le vérifie.'
+    if fid >= 0:
+        return
     # Empêche Qgis de planter. Sûrement une histoire de priorité de tâche. J'ai trouvé ça pour y parer.'
     QTimer.singleShot(1, lambda: process_new_feature(fid))
 
 def process_new_feature(fid):
     """Traite l'ajout d'une nouvelle entité dans la couche segments"""
     global last_fid, list_field_name, list_field_index, id_field_index
-
-    # Solution hideuse trouvé pour éviter que ce relance le processus lors de l'enregistrement des couches.
-    # Essayé before/afterCommitChanges, mais les signaux sont mal coordonnées et je n'ai rien pu en tirer.
-    if fid >= 0:
-        return
 
     # Initialisation
     list_field_name = config.get_list_field_name()
@@ -169,15 +167,10 @@ def stop_script():
     """Arrête l'exécution du script"""
     global segments_layer, compositions_layer
 
-    try:
-        if segments_layer:
-            segments_layer.featureAdded.disconnect(feature_added)
-            segments_layer.featuresDeleted.disconnect(features_deleted)
-        segments_layer = None
-        compositions_layer = None
-    except:
-        pass  # Ignore si déjà déconnecté
-    iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager est arrêté", level=Qgis.Info)
+    segments_layer.featureAdded.disconnect(feature_added)
+    segments_layer.featuresDeleted.disconnect(features_deleted)
+
+    iface.messageBar().pushMessage("Info", "Le suivi par NetworkManager est arrêté", level=Qgis.MessageLevel.Info)
 
 def show_dialog():
     dialog = NetworkManagerDialog(iface.mainWindow())
