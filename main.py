@@ -221,11 +221,11 @@ class NetworkManagerDialog(QDialog):
         layout.addWidget(layers_group)
 
         # Groupe Configuration colonne segments
-        column_group = QGroupBox("Configuration colonne segments")
+        column_group = QGroupBox("Configuration de la liste de segments")
         column_layout = QVBoxLayout()
 
         self.segments_column_combo = QComboBox()
-        column_layout.addWidget(QLabel("Colonne contenant les segments:"))
+        column_layout.addWidget(QLabel("Colonne contenant la liste de segments:"))
         column_layout.addWidget(self.segments_column_combo)
 
         column_group.setLayout(column_layout)
