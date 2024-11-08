@@ -7,7 +7,7 @@ L'exemple le plus évident de réseau est celui des routes :
 la départementale 42 est à la fois une seule route et est composée de dizaines de sections différentes.
 
 Les sections sont dans le plugin des segments, et la départementale correspond à une composition.
-Ce plugin aide à la conversion entre ces deux identités. 
+Ce plugin aide à la création de compositions à partir de segments. 
 
 Tout le travail géographique s'effectue sur les segments, on ne remplie dans les compositions que des attributs ainsi que les identifiants des segments dans une liste.
 
