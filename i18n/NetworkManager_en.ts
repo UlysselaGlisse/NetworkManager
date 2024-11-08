@@ -57,22 +57,22 @@
 <context>
     <name>NetworkManager</name>
     <message>
-        <location filename="../main.py" line="166"/>
+        <location filename="../main.py" line="167"/>
         <source>Le suivi par NetworkManager a démarré</source>
         <translation>NetworkManager tracking has started</translation>
     </message>
     <message>
-        <location filename="../main.py" line="157"/>
+        <location filename="../main.py" line="158"/>
         <source>Le champ &apos;id&apos; n&apos;a pas été trouvé dans la couche segments</source>
         <translation>Field &apos;id&apos; not found in segments layer</translation>
     </message>
     <message>
-        <location filename="../main.py" line="170"/>
+        <location filename="../main.py" line="171"/>
         <source>Erreur</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../main.py" line="180"/>
+        <location filename="../main.py" line="181"/>
         <source>Le suivi par NetworkManager est arrêté</source>
         <translation>NetworkManager tracking has stoped</translation>
     </message>
@@ -80,92 +80,92 @@
 <context>
     <name>NetworkManagerDialog</name>
     <message>
-        <location filename="../main.py" line="192"/>
+        <location filename="../main.py" line="193"/>
         <source>Gestionnaire de réseaux</source>
         <translation>Network Manager</translation>
     </message>
     <message>
-        <location filename="../main.py" line="210"/>
+        <location filename="../main.py" line="211"/>
         <source>Configuration des couches</source>
         <translation>Layers configuration</translation>
     </message>
     <message>
-        <location filename="../main.py" line="215"/>
+        <location filename="../main.py" line="216"/>
         <source>Couche segments:</source>
         <translation>Segments layer:</translation>
     </message>
     <message>
-        <location filename="../main.py" line="223"/>
+        <location filename="../main.py" line="224"/>
         <source>Couche compositions:</source>
         <translation>Compositions layer:</translation>
     </message>
     <message>
-        <location filename="../main.py" line="233"/>
+        <location filename="../main.py" line="234"/>
         <source>Configuration de la liste de segments</source>
         <translation>List of segments configuration</translation>
     </message>
     <message>
-        <location filename="../main.py" line="237"/>
+        <location filename="../main.py" line="238"/>
         <source>Colonne contenant la liste de segments:</source>
         <translation>Field where the list of segments is:</translation>
     </message>
     <message>
-        <location filename="../main.py" line="347"/>
+        <location filename="../main.py" line="348"/>
         <source>Status: Arrêté</source>
-        <translation>Stop</translation>
+        <translation>Status: Stop</translation>
     </message>
     <message>
-        <location filename="../main.py" line="346"/>
+        <location filename="../main.py" line="347"/>
         <source>Démarrer</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="../main.py" line="258"/>
+        <location filename="../main.py" line="259"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location filename="../main.py" line="294"/>
+        <location filename="../main.py" line="295"/>
         <source>Démarrer automatiquement au lancement du projet</source>
         <translation>Auto-start on project launch</translation>
     </message>
     <message>
-        <location filename="../main.py" line="323"/>
+        <location filename="../main.py" line="324"/>
         <source>Attention</source>
         <translation>Warning</translation>
     </message>
     <message>
-        <location filename="../main.py" line="319"/>
+        <location filename="../main.py" line="320"/>
         <source>Veuillez sélectionner les couches segments et compositions</source>
         <translation>Please select layers, segments and compositions</translation>
     </message>
     <message>
-        <location filename="../main.py" line="323"/>
+        <location filename="../main.py" line="324"/>
         <source>Veuillez sélectionner la colonne segments</source>
         <translation>Please select column segments</translation>
     </message>
     <message>
-        <location filename="../main.py" line="338"/>
+        <location filename="../main.py" line="339"/>
         <source>Erreur</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../main.py" line="338"/>
+        <location filename="../main.py" line="339"/>
         <source>Une erreur est survenue: {str(e)}</source>
         <translation>An error has occured: {str(e)}</translation>
     </message>
     <message>
-        <location filename="../main.py" line="343"/>
+        <location filename="../main.py" line="344"/>
         <source>Arrêter</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../main.py" line="344"/>
+        <location filename="../main.py" line="345"/>
         <source>Status: En cours d&apos;exécution</source>
         <translation>Status: Running</translation>
     </message>
     <message>
-        <location filename="../main.py" line="459"/>
+        <location filename="../main.py" line="460"/>
         <source>
         Gestionnaire de réseaux
 
