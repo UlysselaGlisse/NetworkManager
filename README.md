@@ -62,3 +62,7 @@ Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la chec
 * Démarrer
 
 Vous pouvez aussi choisir de laisser tourner ce plugin en permanence en cochant la case correspondante.
+
+# Essai
+Si vous souhaitez simplement essayer ce plugin, vous trouverez dans le dossier etc/ un Géopackage d'exemple.
+Ouvrez-le et essayer. 
