@@ -10,6 +10,8 @@ En pratique, la première fonction de ce plugin est d'aider au moment de la divi
 Si le segment fait partie d'une ou plusieurs compositions, il est pénible d'aller chercher dans lesquelles et à quel endroit. 
 Le plugin s'occupe de cela à votre place. Si deux sections sont fusionnées, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
 
+https://github.com/user-attachments/assets/847a345d-a748-43bd-8e1c-c4cfd3f3e9d2
+
 
 # Installation 
 
