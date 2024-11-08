@@ -70,11 +70,8 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
 
     original_geom = original_feature.geometry()
     new_geom = new_feature.geometry()
-    print(f"DEBUG: Géométrie originale: {original_geom.asWkt()[:50]}...")
-    print(f"DEBUG: Nouvelle géométrie: {new_geom.asWkt()[:50]}...")
 
     compositions_dict = {feature[segments_field_name]: feature.id() for feature in compositions_layer.getFeatures()}
-    print(f"DEBUG: Nombre de compositions trouvées: {len(compositions_dict)}")
 
     for segments_list in segment_lists:
         try:
@@ -104,13 +101,15 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
             else:
                 next_geom = None
 
+            if old_index < len(segments_list) - 1:
+                segment_geom = original_geom
+                original_geometry = True
+            else:
+                segment_geom = new_geom
+                original_geometry = False
 
             # Vérifier l'orientation
-            is_correctly_oriented = check_segment_orientation(
-                original_geom if old_index > 0 else new_geom,
-                prev_geom,
-                next_geom
-            )
+            is_correctly_oriented = check_segment_orientation(segment_geom, original_geometry, prev_geom, next_geom,)
             print(f"DEBUG: Orientation correcte: {is_correctly_oriented}")
 
             new_segments_list = segments_list.copy()
@@ -134,35 +133,48 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
             print(f"ERREUR lors de la mise à jour: {str(e)}")
             print(f"DEBUG: Détails de l'erreur: {traceback.format_exc()}")
 
-def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment_geom=None):
+def check_segment_orientation(segment_geom, old_or_new, prev_segment_geom=None, next_segment_geom=None):
     """Vérifie si un segment est orienté correctement par rapport aux segments adjacents"""
-    if segment_geom.isEmpty():
-        print("DEBUG: Segment géométrie vide")
-        return True
 
     segment_points = segment_geom.asPolyline()
-    print(f"\nDEBUG: Points du segment courant: début={segment_points[0]}, fin={segment_points[-1]}")
-    # Vérifier avec le segment précédent
-    if prev_segment_geom and not prev_segment_geom.isEmpty():
-        prev_points = prev_segment_geom.asPolyline()
-        print(f"DEBUG: Points du segment précédent: début={prev_points[0]}, fin={prev_points[-1]}")
 
-        # Si le dernier point du segment précédent plus éloigné du premier du segment original que du dernier, alors à l'envers.'
-        if prev_points[-1].distance(segment_points[0]) > prev_points[-1].distance(segment_points[-1]):
-            print("DEBUG: Segment mal orienté par rapport au précédent")
-            return False
+    if old_or_new == True:
+        # Vérifier avec le segment suivant
+        if next_segment_geom and not next_segment_geom.isEmpty():
+            next_points = next_segment_geom.asPolyline()
 
-     # Vérifier avec le segment suivant
+            if segment_points[0].distance(next_points[0]) < 0.01 or segment_points[0].distance(next_points[-1]) < 0.01:
+                return False
+
+    if old_or_new == False:
+        # Vérifier avec le segment précédent
+        if prev_segment_geom and not prev_segment_geom.isEmpty():
+            prev_points = prev_segment_geom.asPolyline()
+            # Si le dernier point du segment précédent plus éloigné du premier du segment original que du dernier, alors à l'envers.'
+            if segment_points[-1].distance(prev_points[0]) < 0.01 or segment_points[-1].distance(prev_points[-1]) < 0.01:
+                return False
+
+    return True
+
+
+    print(f"Début recherche orientation nouveau segment...")
+    new_segment_points = new_geom.asPolyline()
+    # Vérifier avec le segment suivant
     if next_segment_geom and not next_segment_geom.isEmpty():
         next_points = next_segment_geom.asPolyline()
         print(f"DEBUG: Points du segment suivant: début={next_points[0]}, fin={next_points[-1]}")
 
-        # Si le distance entre le dernier point du segment original et le premier du segment suivant est plus grande
-        #  qu'entre le premier point du segment original que du premier du segment suivant, alors à l'envers
-        if segment_points[-1].distance(next_points[0]) > segment_points[0].distance(next_points[0]):
-            print("DEBUG: Segment mal orienté par rapport au suivant")
-            return False
+        distance_segment_end_to_next_start = new_segment_points[-1].distance(next_points[0])
+        distance_segment_start_to_next_start = new_segment_points[0].distance(next_points[0])
 
+        print(f"DEBUG: Distance entre la fin du segment courant et le début du segment suivant: {distance_segment_end_to_next_start}")
+        print(f"DEBUG: Distance entre le début du segment courant et le début du segment suivant: {distance_segment_start_to_next_start}")
+
+        # Si la distance entre le dernier point du segment original et le premier du segment suivant est plus grande
+        # qu'entre le premier point du segment original et le premier du segment suivant, alors à l'envers
+        if distance_segment_end_to_next_start > distance_segment_start_to_next_start:
+            print("DEBUG:'Nouveau segment': Segment mal orienté par rapport au suivant")
+            return False
 
     print("DEBUG: Segment correctement orienté")
     return True

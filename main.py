@@ -32,7 +32,7 @@ from qgis.PyQt.QtCore import (
     QTranslator
 )
 from typing import Literal, Optional, cast
-from .utils import get_features_list
+from .utils import get_features_list, print_geometry_info
 from .functions import (
     get_compositions_list_segments,
     update_compositions_segments,
@@ -78,10 +78,12 @@ def process_new_feature(fid):
         if not new_geometry or new_geometry.isEmpty():
             return
 
-        # Récupérer le segment original
+        # Récupérer le segment original (après qu'il ait été divisé)
         expression = f"\"id\" = '{segment_id}' AND $id != {fid}"
         request = QgsFeatureRequest().setFilterExpression(expression)
         original_feature = next(segments_layer.getFeatures(request), None)
+
+
 
         if original_feature:
             # Récupérer toutes les compositions contenant ce segment
