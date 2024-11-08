@@ -5,7 +5,8 @@ from qgis.core import (
     Qgis,
     QgsFeatureRequest,
     QgsWkbTypes,
-    QgsSpatialIndex
+    QgsSpatialIndex,
+    QgsGeometry
 )
 from qgis.utils import iface
 from qgis.PyQt.QtWidgets import (
@@ -25,6 +26,8 @@ from qgis.PyQt.QtGui import QCloseEvent
 from qgis.PyQt.QtCore import Qt, QTimer, QSettings
 from .utils import get_features_list, timer_decorator
 from . import config
+import traceback
+
 
 def get_compositions_list_segments(segment_id, compositions_layer, segments_field_name):
     """Récupère toutes les listes de segments contenant l'id du segment divisé"""
@@ -59,66 +62,109 @@ def get_compositions_list_segments(segment_id, compositions_layer, segments_fiel
     return all_segments_lists
 
 def update_compositions_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index, old_id, new_id, original_feature, new_feature, segment_lists):
-    """ Met à jour les compositions après division d'un segment"""
+    """Met à jour les compositions après division d'un segment"""
+    print(f"\nDEBUG: Début update_compositions_segments")
+    print(f"DEBUG: old_id={old_id}, new_id={new_id}")
+
     compositions_layer.startEditing()
 
     original_geom = original_feature.geometry()
     new_geom = new_feature.geometry()
+    print(f"DEBUG: Géométrie originale: {original_geom.asWkt()[:50]}...")
+    print(f"DEBUG: Nouvelle géométrie: {new_geom.asWkt()[:50]}...")
 
     compositions_dict = {feature[segments_field_name]: feature.id() for feature in compositions_layer.getFeatures()}
+    print(f"DEBUG: Nombre de compositions trouvées: {len(compositions_dict)}")
 
     for segments_list in segment_lists:
         try:
+            print(f"\nDEBUG: Traitement liste segments: {segments_list}")
             old_index = segments_list.index(int(old_id))
+            print(f"DEBUG: Position du segment à remplacer: {old_index}")
+
+            prev_id = segments_list[old_index - 1]
+
+            expression = f"\"id\" = '{prev_id}'"
+            request = QgsFeatureRequest().setFilterExpression(expression)
+            prev_feature = next(segments_layer.getFeatures(request), None)
+
+            if prev_feature:
+                prev_geom = prev_feature.geometry()
+            else:
+                prev_geom = None
+
+            next_id = segments_list[old_index + 1] if old_index < len(segments_list) - 1 else None
+
+            expression = f"\"id\" = '{next_id}'"
+            request = QgsFeatureRequest().setFilterExpression(expression)
+            next_feature = next(segments_layer.getFeatures(request), None)
+
+            if next_feature:
+                next_geom = next_feature.geometry()
+            else:
+                next_geom = None
+
 
             # Vérifier l'orientation
-            prev_geom = segments_layer.getFeature(segments_list[old_index - 1]).geometry() if old_index > 0 else None
-            next_geom = segments_layer.getFeature(segments_list[old_index + 1]).geometry() if old_index < len(segments_list) - 1 else None
-
             is_correctly_oriented = check_segment_orientation(
                 original_geom if old_index > 0 else new_geom,
                 prev_geom,
                 next_geom
             )
+            print(f"DEBUG: Orientation correcte: {is_correctly_oriented}")
 
             new_segments_list = segments_list.copy()
-
             if is_correctly_oriented:
                 new_segments_list[old_index:old_index+1] = [int(old_id), int(new_id)]
             else:
                 new_segments_list[old_index:old_index+1] = [int(new_id), int(old_id)]
+            print(f"DEBUG: Nouvelle liste de segments: {new_segments_list}")
 
             # Mettre à jour la composition
             composition_id = compositions_dict.get(','.join(map(str, segments_list)))
             if composition_id:
+                print(f"DEBUG: Mise à jour composition ID: {composition_id}")
                 compositions_layer.changeAttributeValue(
                     composition_id,
                     segments_field_index,
                     ','.join(map(str, new_segments_list))
-                )
+            )
 
         except Exception as e:
             print(f"ERREUR lors de la mise à jour: {str(e)}")
+            print(f"DEBUG: Détails de l'erreur: {traceback.format_exc()}")
 
 def check_segment_orientation(segment_geom, prev_segment_geom=None, next_segment_geom=None):
     """Vérifie si un segment est orienté correctement par rapport aux segments adjacents"""
     if segment_geom.isEmpty():
+        print("DEBUG: Segment géométrie vide")
         return True
 
     segment_points = segment_geom.asPolyline()
-
+    print(f"\nDEBUG: Points du segment courant: début={segment_points[0]}, fin={segment_points[-1]}")
     # Vérifier avec le segment précédent
     if prev_segment_geom and not prev_segment_geom.isEmpty():
         prev_points = prev_segment_geom.asPolyline()
+        print(f"DEBUG: Points du segment précédent: début={prev_points[0]}, fin={prev_points[-1]}")
+
+        # Si le dernier point du segment précédent plus éloigné du premier du segment original que du dernier, alors à l'envers.'
         if prev_points[-1].distance(segment_points[0]) > prev_points[-1].distance(segment_points[-1]):
+            print("DEBUG: Segment mal orienté par rapport au précédent")
             return False
 
-    # Vérifier avec le segment suivant
+     # Vérifier avec le segment suivant
     if next_segment_geom and not next_segment_geom.isEmpty():
         next_points = next_segment_geom.asPolyline()
+        print(f"DEBUG: Points du segment suivant: début={next_points[0]}, fin={next_points[-1]}")
+
+        # Si le distance entre le dernier point du segment original et le premier du segment suivant est plus grande
+        #  qu'entre le premier point du segment original que du premier du segment suivant, alors à l'envers
         if segment_points[-1].distance(next_points[0]) > segment_points[0].distance(next_points[0]):
+            print("DEBUG: Segment mal orienté par rapport au suivant")
             return False
 
+
+    print("DEBUG: Segment correctement orienté")
     return True
 
 def process_single_segment_composition(segments_layer, compositions_layer, segments_field_name, segments_field_index, fid, old_id, new_id, segments_list):
