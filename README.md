@@ -1,9 +1,12 @@
-Ce plugin Qgis a pour objectif d'offir une assistance lors de la réalisation d'un réseau, c'est-à-dire d'une composition de segments. 
+Ce plugin Qgis a pour objectif d'offir une assistance lors de la réalisation d'un réseau. 
+L'exemple le plus évident de réseau est celui des routes : 
+La départementale 42 est à la fois une seule route et est composée de dizaines de sections différentes. 
 
-Il permet de mettre à jour automatiquement les compositions lorsque des segments sont divisés ou fusionnés. 
+Ce plugin aide à la conversion entre ces deux identités. Les segments sont ici les sections (donc la géométrie), et une composition correspond à la départementale.
 
-
-
+En pratique, la première fonction de ce plugin est d'aider au moment de la division d'un segment. 
+Si celui-ci fait partie d'une ou plusieurs compositions, il est pénible d'aller chercher dans lesquelles et à quel endroit. 
+Le plugin s'occupe de cela à votre place. Si deux sections sont fusionnés, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
 
 
 # Installation 
@@ -14,17 +17,17 @@ Télécharger ce répertoire :
 git clone https://github.com/UlysselaGlisse/NetworkManager.git
 ```
 
-### Linux : 
+* Linux : 
 
 Déplacer le répertoire dans le dossier des plugins de Qgis normalement :
 
 `~.local/share/QGIS/QGIS3/profiles/default/python/plugins.`
 
-### Windows : 
+* Windows : 
 
 `C:\Users\USER\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`
 
-### Mac OS :
+* Mac OS :
 
 `Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins`
 
@@ -33,8 +36,8 @@ Déplacer le répertoire dans le dossier des plugins de Qgis normalement :
 
 Dans Qgis, Extensions >  Installer/Gérer les extensions
 
-Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Installer l'extension.
+Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la checkbox.
 
 ## Utilisation
 
-Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions. Les couches peuvent être de n'importe quel format - pourvu que Qgis les accepte ! Elles peuvent avoir le nom que vous souhaitez, la seule chose nécessaire est qu'il existe dans la couche des compositions un champ nommé "segments" et que la couche des segments ait un champ nommé "id" - celui avec lequel vous construisez vos compositions.
+Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions. Les couches peuvent être de n'importe quel format - pourvu que Qgis les accepte ! Elles peuvent avoir le nom que vous souhaitez, la seule chose nécessaire est que le champ contenant la liste de segments soit de type string et que la couche des segments ait un champ nommé "id" - celui avec lequel vous construisez vos compositions.
