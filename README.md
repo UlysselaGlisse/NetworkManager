@@ -52,6 +52,8 @@ Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la chec
 ### Usages:
 * Cliquer sur l'icone ![icône](icons/icon.png)
 * Entrer le nom des deux couches puis du champ de la couche des compositions où se trouve la liste des segments.
+  ![Dialogue_NM](https://github.com/user-attachments/assets/6f82032e-d1c1-4752-910e-402aae23aaf0)
+
 * Démarrer
 
 Vous pouvez aussi choisir de laisser tourner ce plugin en permanence en cochant la case correspondante.
