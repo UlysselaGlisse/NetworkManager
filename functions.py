@@ -1,3 +1,4 @@
+from ast import Raise
 from qgis.core import (
     QgsProject,
     QgsVectorLayer,
@@ -63,44 +64,18 @@ def get_compositions_list_segments(segment_id, compositions_layer, segments_fiel
 
 def update_compositions_segments(segments_layer, compositions_layer, segments_field_name, segments_field_index, old_id, new_id, original_feature, new_feature, segment_lists):
     """Met à jour les compositions après division d'un segment"""
-    print(f"\nDEBUG: Début update_compositions_segments")
-    print(f"DEBUG: old_id={old_id}, new_id={new_id}")
-
     compositions_layer.startEditing()
 
     original_geom = original_feature.geometry()
     new_geom = new_feature.geometry()
 
     compositions_dict = {feature[segments_field_name]: feature.id() for feature in compositions_layer.getFeatures()}
-
     for segments_list in segment_lists:
         try:
-            print(f"\nDEBUG: Traitement liste segments: {segments_list}")
             old_index = segments_list.index(int(old_id))
-            print(f"DEBUG: Position du segment à remplacer: {old_index}")
 
-            prev_id = segments_list[old_index - 1]
-
-            expression = f"\"id\" = '{prev_id}'"
-            request = QgsFeatureRequest().setFilterExpression(expression)
-            prev_feature = next(segments_layer.getFeatures(request), None)
-
-            if prev_feature:
-                prev_geom = prev_feature.geometry()
-            else:
-                prev_geom = None
-
-            next_id = segments_list[old_index + 1] if old_index < len(segments_list) - 1 else None
-
-            expression = f"\"id\" = '{next_id}'"
-            request = QgsFeatureRequest().setFilterExpression(expression)
-            next_feature = next(segments_layer.getFeatures(request), None)
-
-            if next_feature:
-                next_geom = next_feature.geometry()
-            else:
-                next_geom = None
-
+            # Pour vérifier l'orientation du segment on doit d'abord vérifier si c'est le dernier de la liste
+            # car une logique différente s'applique dans ce cas.
             if old_index < len(segments_list) - 1:
                 segment_geom = original_geom
                 original_geometry = True
@@ -109,74 +84,67 @@ def update_compositions_segments(segments_layer, compositions_layer, segments_fi
                 original_geometry = False
 
             # Vérifier l'orientation
-            is_correctly_oriented = check_segment_orientation(segment_geom, original_geometry, prev_geom, next_geom,)
-            print(f"DEBUG: Orientation correcte: {is_correctly_oriented}")
+            is_correctly_oriented = check_segment_orientation(segments_layer, segment_geom, original_geometry, segments_list, old_index)
 
+            # On ajuste la nouvelle liste en fonction de l'orientation du segment.'
             new_segments_list = segments_list.copy()
             if is_correctly_oriented:
                 new_segments_list[old_index:old_index+1] = [int(old_id), int(new_id)]
             else:
                 new_segments_list[old_index:old_index+1] = [int(new_id), int(old_id)]
-            print(f"DEBUG: Nouvelle liste de segments: {new_segments_list}")
 
             # Mettre à jour la composition
             composition_id = compositions_dict.get(','.join(map(str, segments_list)))
             if composition_id:
-                print(f"DEBUG: Mise à jour composition ID: {composition_id}")
                 compositions_layer.changeAttributeValue(
                     composition_id,
                     segments_field_index,
                     ','.join(map(str, new_segments_list))
             )
-
         except Exception as e:
-            print(f"ERREUR lors de la mise à jour: {str(e)}")
-            print(f"DEBUG: Détails de l'erreur: {traceback.format_exc()}")
+            raise Exception("La composition .. n'a pa pu être mis-à-jour")
 
-def check_segment_orientation(segment_geom, old_or_new, prev_segment_geom=None, next_segment_geom=None):
+def check_segment_orientation(segments_layer, segment_geom, old_or_new, segments_list, old_index):
     """Vérifie si un segment est orienté correctement par rapport aux segments adjacents"""
-
     segment_points = segment_geom.asPolyline()
 
     if old_or_new == True:
+        next_id = segments_list[old_index + 1] if old_index < len(segments_list) - 1 else None
+
+        expression = f"\"id\" = '{next_id}'"
+        request = QgsFeatureRequest().setFilterExpression(expression)
+        next_feature = next(segments_layer.getFeatures(request), None)
+
+        if next_feature:
+            next_geom = next_feature.geometry()
+        else:
+            next_geom = None
+
         # Vérifier avec le segment suivant
-        if next_segment_geom and not next_segment_geom.isEmpty():
-            next_points = next_segment_geom.asPolyline()
+        if next_geom and not next_geom.isEmpty():
+            next_points = next_geom.asPolyline()
 
             if segment_points[0].distance(next_points[0]) < 0.01 or segment_points[0].distance(next_points[-1]) < 0.01:
                 return False
 
     if old_or_new == False:
+        prev_id = segments_list[old_index - 1]
+
+        expression = f"\"id\" = '{prev_id}'"
+        request = QgsFeatureRequest().setFilterExpression(expression)
+        prev_feature = next(segments_layer.getFeatures(request), None)
+
+        if prev_feature:
+            prev_geom = prev_feature.geometry()
+        else:
+            prev_geom = None
         # Vérifier avec le segment précédent
-        if prev_segment_geom and not prev_segment_geom.isEmpty():
-            prev_points = prev_segment_geom.asPolyline()
+        if prev_geom and not prev_geom.isEmpty():
+            prev_points = prev_geom.asPolyline()
             # Si le dernier point du segment précédent plus éloigné du premier du segment original que du dernier, alors à l'envers.'
             if segment_points[-1].distance(prev_points[0]) < 0.01 or segment_points[-1].distance(prev_points[-1]) < 0.01:
                 return False
 
-    return True
-
-
-    print(f"Début recherche orientation nouveau segment...")
-    new_segment_points = new_geom.asPolyline()
-    # Vérifier avec le segment suivant
-    if next_segment_geom and not next_segment_geom.isEmpty():
-        next_points = next_segment_geom.asPolyline()
-        print(f"DEBUG: Points du segment suivant: début={next_points[0]}, fin={next_points[-1]}")
-
-        distance_segment_end_to_next_start = new_segment_points[-1].distance(next_points[0])
-        distance_segment_start_to_next_start = new_segment_points[0].distance(next_points[0])
-
-        print(f"DEBUG: Distance entre la fin du segment courant et le début du segment suivant: {distance_segment_end_to_next_start}")
-        print(f"DEBUG: Distance entre le début du segment courant et le début du segment suivant: {distance_segment_start_to_next_start}")
-
-        # Si la distance entre le dernier point du segment original et le premier du segment suivant est plus grande
-        # qu'entre le premier point du segment original et le premier du segment suivant, alors à l'envers
-        if distance_segment_end_to_next_start > distance_segment_start_to_next_start:
-            print("DEBUG:'Nouveau segment': Segment mal orienté par rapport au suivant")
-            return False
-
-    print("DEBUG: Segment correctement orienté")
     return True
 
 def process_single_segment_composition(segments_layer, compositions_layer, segments_field_name, segments_field_index, fid, old_id, new_id, segments_list):
