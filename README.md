@@ -1,4 +1,4 @@
-THis README is also available in [:en: English](https://github.com/UlysselaGlisse/i18n/README-en) and [:de: German](https://github.com/UlysselaGlisse/i18n/README-de)
+THis README is also available in [:gb: English](https://github.com/UlysselaGlisse/i18n/README-en) and [:de: German](https://github.com/UlysselaGlisse/i18n/README-de)
 
 
 
