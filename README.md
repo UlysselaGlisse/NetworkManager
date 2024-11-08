@@ -43,7 +43,7 @@ Dans Qgis, Extensions >  Installer/Gérer les extensions
 Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la checkbox.
 
 ## Utilisation
-### prérequis:
+### Prérequis:
 * Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions.
 * Les couches peuvent être de n'importe quel format (GeoPackage, Postgresql, shp, geojson, ...).
 * Elles peuvent avoir le nom que vous souhaitez
