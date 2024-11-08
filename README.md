@@ -4,8 +4,6 @@ Il permet de mettre à jour automatiquement les compositions lorsque des segment
 
 
 
-https://github.com/user-attachments/assets/0a4fa5cf-6b35-414f-ae94-fbf26d39a2a3
-
 
 
 # Installation 
