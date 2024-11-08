@@ -7,8 +7,8 @@ Ce plugin aide à la conversion entre ces deux identités. Les segments sont ici
 Tout le travail géographique s'effectue sur les segments, on ne remplie dans les compositions que des attributs et une liste contenant les segments la composant.
 
 En pratique, la première fonction de ce plugin est d'aider au moment de la division d'un segment. 
-Si au moment de la division, le segment fait partie d'une ou plusieurs compositions, il est pénible d'aller chercher dans lesquelles et à quel endroit. 
-Le plugin s'occupe de cela à votre place. Si deux sections sont fusionnés, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
+Si le segment fait partie d'une ou plusieurs compositions, il est pénible d'aller chercher dans lesquelles et à quel endroit. 
+Le plugin s'occupe de cela à votre place. Si deux sections sont fusionnées, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
 
 
 # Installation 
