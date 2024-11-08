@@ -4,15 +4,16 @@ THis README is also available in [:gb: English](https://github.com/UlysselaGliss
 
 Ce plugin Qgis a pour objectif d'offir une assistance lors de la réalisation d'un réseau.
 L'exemple le plus évident de réseau est celui des routes :
-La départementale 42 est à la fois une seule route et est composée de dizaines de sections différentes.
+la départementale 42 est à la fois une seule route et est composée de dizaines de sections différentes.
 
-Ce plugin aide à la conversion entre ces deux identités. Les segments sont ici les sections, et une composition correspond à la départementale.
+Les sections sont dans le plugin des segments, et la départementale correspond à une composition.
+Ce plugin aide à la conversion entre ces deux identités. 
 
-Tout le travail géographique s'effectue sur les segments, on ne remplie dans les compositions que des attributs et une liste contenant les segments la composant.
+Tout le travail géographique s'effectue sur les segments, on ne remplie dans les compositions que des attributs ainsi que les identifiants des segments dans une liste.
 
 En pratique, la première fonction de ce plugin est d'aider au moment de la division d'un segment.
 Si le segment fait partie d'une ou plusieurs compositions, il est pénible d'aller chercher dans lesquelles et à quel endroit.
-Le plugin s'occupe de cela à votre place. Si deux sections sont fusionnées, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
+Le plugin s'occupe de cela à votre place. Si deux segments sont fusionnées, le plugin vous assistera de la même manière en supprimant le segment qui a disparu dans la fusion.
 
 https://github.com/user-attachments/assets/847a345d-a748-43bd-8e1c-c4cfd3f3e9d2
 
