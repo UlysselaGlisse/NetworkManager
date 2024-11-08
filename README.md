@@ -1,3 +1,7 @@
+THis README is also available in [:en: English](https://github.com/UlysselaGlisse/i18n/README-en) and [:de: German](https://github.com/UlysselaGlisse/i18n/README-de)
+
+
+
 Ce plugin Qgis a pour objectif d'offir une assistance lors de la réalisation d'un réseau.
 L'exemple le plus évident de réseau est celui des routes :
 La départementale 42 est à la fois une seule route et est composée de dizaines de sections différentes.
@@ -42,7 +46,7 @@ Dans Qgis, Extensions >  Installer/Gérer les extensions
 
 Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la checkbox.
 
-## Utilisation
+# Utilisation
 ### Prérequis:
 * Deux couches sont requises en entrée, une pour les segments et une autre pour les compositions.
 * Les couches peuvent être de n'importe quel format (GeoPackage, Postgresql, shp, geojson, ...).
@@ -52,7 +56,7 @@ Taper NetworkManager - s'il n'apparaît pas, redémarrer Qgis - > Cocher la chec
 ### Usages:
 * Cliquer sur l'icone ![icône](icons/icon.png)
 * Entrer le nom des deux couches puis du champ de la couche des compositions où se trouve la liste des segments.
-* 
+*
 ![Dialogue_Network_Manager](https://github.com/user-attachments/assets/a4928324-27a8-4dc0-93c9-858c212f5fee)
 
 * Démarrer
